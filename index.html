@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Factory Stock Login System</title>
+<style>
+* { box-sizing: border-box; font-family: Arial, sans-serif; }
+body { margin: 0; background: #f4f6f8; color: #1f2937; }
+header { background: linear-gradient(135deg,#111827,#2563eb); color: white; padding: 24px; text-align: center; }
+.container { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+.card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 14px rgba(0,0,0,.08); margin-bottom: 16px; }
+.page { display: none; }
+.page.active { display: block; }
+label { display: block; margin-top: 12px; font-weight: bold; }
+input, select, button { width: 100%; padding: 10px; margin-top: 6px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 15px; }
+button { background: #2563eb; color: white; border: none; cursor: pointer; margin-top: 16px; font-weight: bold; }
+button:hover { background: #1d4ed8; }
+.danger { background: #dc2626; }
+.danger:hover { background: #b91c1c; }
+.secondary { background: #0f766e; }
+.secondary:hover { background: #115e59; }
+.message { margin-top: 12px; padding: 12px; border-radius: 8px; display: none; }
+.message.ok { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap: 16px; }
+table { width: 100%; border-collapse: collapse; margin-top: 16px; background: white; }
+th, td { padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+th { background: #e5e7eb; }
+.hint { color: #6b7280; font-size: 14px; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Factory Stock Management System</h1>
+  <p>Login + Change Password Version</p>
+</header>
+
+<div class="container">
+
+  <section id="loginPage" class="page active">
+    <div class="card" style="max-width:420px;margin:auto;">
+      <h2>Login</h2>
+      <p class="hint">Admin หรือร้านค้าเข้าสู่ระบบจากหน้านี้</p>
+
+      <label>Username</label>
+      <input id="loginUsername" placeholder="เช่น admin หรือ C001" />
+
+      <label>Password</label>
+      <input id="loginPassword" type="password" placeholder="password" />
+
+      <button onclick="login()">Login</button>
+      <div id="loginMessage" class="message"></div>
+
+      <p class="hint">
+        ตัวอย่างเริ่มต้น: admin/admin123, C001/pw001, C002/pw002
+      </p>
+    </div>
+  </section>
+
+  <section id="adminPage" class="page">
+    <div class="card">
+      <h2>Admin Dashboard</h2>
+      <p>เข้าสู่ระบบในฐานะ: <b id="adminName"></b></p>
+
+      <div class="grid">
+        <div class="card">
+          <h3>Admin Change Password</h3>
+          <label>รหัสผ่านเดิม</label>
+          <input id="adminOldPassword" type="password" />
+
+          <label>รหัสผ่านใหม่</label>
+          <input id="adminNewPassword" type="password" />
+
+          <label>ยืนยันรหัสผ่านใหม่</label>
+          <input id="adminConfirmPassword" type="password" />
+
+          <button onclick="changeMyPassword('admin')">เปลี่ยนรหัสผ่าน Admin</button>
+          <div id="adminChangeMessage" class="message"></div>
+        </div>
+
+        <div class="card">
+          <h3>Reset Password ร้านค้า</h3>
+          <label>เลือกร้านค้า</label>
+          <select id="shopSelect"></select>
+
+          <label>รหัสผ่านใหม่ของร้านค้า</label>
+          <input id="shopNewPasswordByAdmin" type="password" />
+
+          <button class="secondary" onclick="adminResetShopPassword()">เปลี่ยนรหัสผ่านร้านค้า</button>
+          <div id="shopResetMessage" class="message"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>รายการ User</h3>
+        <button class="secondary" onclick="loadUsers()">Refresh Users</button>
+        <table>
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Display Name</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable"></tbody>
+        </table>
+      </div>
+
+      <button class="danger" onclick="logout()">Logout</button>
+    </div>
+  </section>
+
+  <section id="shopPage" class="page">
+    <div class="card">
+      <h2>Shop Order Page</h2>
+      <p>เข้าสู่ระบบในฐานะร้าน: <b id="shopName"></b></p>
+
+      <div class="grid">
+        <div class="card">
+          <h3>Change My Password</h3>
+
+          <label>รหัสผ่านเดิม</label>
+          <input id="shopOldPassword" type="password" />
+
+          <label>รหัสผ่านใหม่</label>
+          <input id="shopNewPassword" type="password" />
+
+          <label>ยืนยันรหัสผ่านใหม่</label>
+          <input id="shopConfirmPassword" type="password" />
+
+          <button onclick="changeMyPassword('shop')">เปลี่ยนรหัสผ่านร้านค้า</button>
+          <div id="shopChangeMessage" class="message"></div>
+        </div>
+
+        <div class="card">
+          <h3>ตัวอย่างหน้าสั่งสินค้า</h3>
+          <p class="hint">ตรงนี้สามารถเอา form สั่งซื้อเดิมของคุณมาใส่ต่อได้</p>
+          <table>
+            <thead>
+              <tr>
+                <th>สินค้า</th>
+                <th>จำนวน</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>ขนมจีบ</td>
+                <td><input type="number" min="0" placeholder="0" /></td>
+              </tr>
+              <tr>
+                <td>เกี้ยวกุ้ง</td>
+                <td><input type="number" min="0" placeholder="0" /></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <button class="danger" onclick="logout()">Logout</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// 1) เอา Web App URL จาก Google Apps Script มาใส่ตรงนี้
+const API_URL = "PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+let currentUser = null;
+
+function showPage(id) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function showMessage(id, text, type) {
+  const box = document.getElementById(id);
+  box.textContent = text;
+  box.className = "message " + type;
+}
+
+async function api(action, payload) {
+  if (!API_URL || API_URL.includes("PASTE_YOUR")) {
+    throw new Error("ยังไม่ได้ใส่ API_URL ของ Google Apps Script ในไฟล์ HTML");
+  }
+
+  const response = await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({ action, ...payload })
+  });
+
+  return await response.json();
+}
+
+async function login() {
+  const username = document.getElementById("loginUsername").value.trim();
+  const password = document.getElementById("loginPassword").value;
+
+  if (!username || !password) {
+    showMessage("loginMessage", "กรุณากรอก username และ password", "error");
+    return;
+  }
+
+  try {
+    const result = await api("login", { username, password });
+
+    if (!result.success) {
+      showMessage("loginMessage", result.error || "Login ไม่สำเร็จ", "error");
+      return;
+    }
+
+    currentUser = result.user;
+    localStorage.setItem("current_user", JSON.stringify(currentUser));
+
+    if (currentUser.role === "admin") {
+      document.getElementById("adminName").textContent = currentUser.displayName;
+      showPage("adminPage");
+      loadUsers();
+    } else {
+      document.getElementById("shopName").textContent = currentUser.displayName;
+      showPage("shopPage");
+    }
+
+  } catch (err) {
+    showMessage("loginMessage", err.message, "error");
+  }
+}
+
+async function changeMyPassword(type) {
+  const username = currentUser.username;
+
+  const oldId = type === "admin" ? "adminOldPassword" : "shopOldPassword";
+  const newId = type === "admin" ? "adminNewPassword" : "shopNewPassword";
+  const confirmId = type === "admin" ? "adminConfirmPassword" : "shopConfirmPassword";
+  const msgId = type === "admin" ? "adminChangeMessage" : "shopChangeMessage";
+
+  const oldPassword = document.getElementById(oldId).value;
+  const newPassword = document.getElementById(newId).value;
+  const confirmPassword = document.getElementById(confirmId).value;
+
+  if (!oldPassword || !newPassword || !confirmPassword) {
+    showMessage(msgId, "กรุณากรอกข้อมูลให้ครบ", "error");
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    showMessage(msgId, "รหัสผ่านใหม่ไม่ตรงกัน", "error");
+    return;
+  }
+
+  if (newPassword.length < 4) {
+    showMessage(msgId, "รหัสผ่านใหม่ควรมีอย่างน้อย 4 ตัวอักษร", "error");
+    return;
+  }
+
+  try {
+    const result = await api("changePassword", {
+      username,
+      oldPassword,
+      newPassword
+    });
+
+    if (result.success) {
+      showMessage(msgId, "เปลี่ยนรหัสผ่านสำเร็จ", "ok");
+      document.getElementById(oldId).value = "";
+      document.getElementById(newId).value = "";
+      document.getElementById(confirmId).value = "";
+    } else {
+      showMessage(msgId, result.error || "เปลี่ยนรหัสผ่านไม่สำเร็จ", "error");
+    }
+  } catch (err) {
+    showMessage(msgId, err.message, "error");
+  }
+}
+
+async function loadUsers() {
+  try {
+    const result = await api("listUsers", {
+      requester: currentUser.username
+    });
+
+    const tbody = document.getElementById("usersTable");
+    const shopSelect = document.getElementById("shopSelect");
+    tbody.innerHTML = "";
+    shopSelect.innerHTML = "";
+
+    if (!result.success) {
+      tbody.innerHTML = `<tr><td colspan="3">${result.error}</td></tr>`;
+      return;
+    }
+
+    result.users.forEach(user => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${user.username}</td>
+        <td>${user.role}</td>
+        <td>${user.displayName}</td>
+      `;
+      tbody.appendChild(tr);
+
+      if (user.role === "shop") {
+        const option = document.createElement("option");
+        option.value = user.username;
+        option.textContent = `${user.username} - ${user.displayName}`;
+        shopSelect.appendChild(option);
+      }
+    });
+
+  } catch (err) {
+    document.getElementById("usersTable").innerHTML =
+      `<tr><td colspan="3">${err.message}</td></tr>`;
+  }
+}
+
+async function adminResetShopPassword() {
+  const targetUsername = document.getElementById("shopSelect").value;
+  const newPassword = document.getElementById("shopNewPasswordByAdmin").value;
+
+  if (!targetUsername || !newPassword) {
+    showMessage("shopResetMessage", "กรุณาเลือกร้านและกรอกรหัสผ่านใหม่", "error");
+    return;
+  }
+
+  try {
+    const result = await api("adminResetPassword", {
+      requester: currentUser.username,
+      targetUsername,
+      newPassword
+    });
+
+    if (result.success) {
+      showMessage("shopResetMessage", "เปลี่ยนรหัสผ่านร้านค้าสำเร็จ", "ok");
+      document.getElementById("shopNewPasswordByAdmin").value = "";
+    } else {
+      showMessage("shopResetMessage", result.error || "ไม่สำเร็จ", "error");
+    }
+  } catch (err) {
+    showMessage("shopResetMessage", err.message, "error");
+  }
+}
+
+function logout() {
+  localStorage.removeItem("current_user");
+  currentUser = null;
+  showPage("loginPage");
+}
+
+window.onload = function() {
+  const saved = localStorage.getItem("current_user");
+  if (saved) {
+    currentUser = JSON.parse(saved);
+    if (currentUser.role === "admin") {
+      document.getElementById("adminName").textContent = currentUser.displayName;
+      showPage("adminPage");
+      loadUsers();
+    } else {
+      document.getElementById("shopName").textContent = currentUser.displayName;
+      showPage("shopPage");
+    }
+  }
+};
+</script>
+</body>
+</html>
