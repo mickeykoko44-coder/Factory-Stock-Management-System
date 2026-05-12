@@ -2410,7 +2410,7 @@ const PRODUCTION_KEY = "factory_production_in_v2";
 const SALES_KEY = "factory_sales_out_v2";
 const ORDER_KEY = "factory_online_orders_v3";
 // ใส่ URL ของ backend/Google Apps Script Web App ตรงนี้ ถ้าต้องการรับ order ออนไลน์จริงจากหลายร้าน
-const ORDER_ENDPOINT = "";
+const ORDER_ENDPOINT = "https://script.google.com/macros/s/AKfycbzIXngJJjJDQv_OJyckm3UTkQvc5f2IIgdYcnFdzLZI6LmWG6DLv6HXSNgrzK7_62vI6Q/exec";
 function today() { return new Date().toISOString().split("T")[0]; }
 function loadData(key) { return JSON.parse(localStorage.getItem(key)) || []; }
 function saveData(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
