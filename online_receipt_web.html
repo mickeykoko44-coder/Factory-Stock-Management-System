@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ระบบออกบิลออนไลน์</title>
+  <style>
+    *{box-sizing:border-box} body{font-family:Tahoma,Arial,sans-serif;margin:0;background:#f4f4f5;color:#111827} header{background:#111827;color:white;padding:18px 24px} h1{margin:0;font-size:24px}.wrap{display:grid;grid-template-columns:1.2fr .8fr;gap:20px;padding:20px;max-width:1300px;margin:auto}.panel{background:white;border-radius:14px;padding:18px;box-shadow:0 8px 25px #0001}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}button{border:0;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:700}.primary{background:#111827;color:white}.secondary{background:#e5e7eb}.danger{background:#fee2e2;color:#991b1b}input,textarea{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:8px;font-family:inherit}.item-grid{display:grid;grid-template-columns:2fr .8fr .8fr .8fr;gap:8px;align-items:center;margin-bottom:8px}.head{font-weight:700;color:#374151}.items{max-height:64vh;overflow:auto;padding-right:6px}.receipt{width:360px;max-width:100%;margin:auto;background:white;padding:18px;font-family:'Courier New',monospace;font-size:13px;color:#111}.center{text-align:center}.muted{color:#555}.rrow{display:grid;grid-template-columns:1fr 68px;text-align:left;gap:6px}.rrow .amt{text-align:right}.line{border-top:1px dashed #222;margin:10px 0}.total{font-weight:700;font-size:15px}.small{font-size:12px}.receipt-title{font-weight:700;font-size:15px}.settings{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}.full{grid-column:1/-1}@media(max-width:900px){.wrap{grid-template-columns:1fr}.receipt{width:100%}.item-grid{grid-template-columns:1.4fr .7fr .7fr .7fr;font-size:13px}}@media print{body{background:white} header,.input-panel,.toolbar,.no-print{display:none!important}.wrap{display:block;padding:0}.panel{box-shadow:none;padding:0}.receipt{width:80mm;margin:0;padding:6mm}.preview-panel{padding:0} @page{size:80mm auto;margin:0}}
+  </style>
+</head>
+<body>
+<header><h1>ระบบออกบิลออนไลน์ (หนานหยวน)</h1></header>
+<div class="wrap">
+  <section class="panel input-panel">
+    <h2>กรอกจำนวนสินค้า</h2>
+    <div class="settings">
+      <label>ชื่อร้าน / หัวบิล<input id="shopName" value="บริษัท เซาท์นุ๊ดเดิ้ลฟู้ดส์ จำกัด (สำนักงานใหญ่)"></label>
+      <label>เบอร์โทร<input id="phone" value="062-995-4065"></label>
+      <label class="full">ที่อยู่<textarea id="address" rows="2">15 ซอยวินอุทิศ ต.คอหงส์ อ.หาดใหญ่ จ.สงขลา 90110</textarea></label>
+      <label>เลขที่บิล<input id="billNo" value="ORNMB608000333"></label>
+      <label>ชื่อลูกค้า<input id="customer" value="ลูกค้า"></label>
+      <label>ส่วนลด<input id="discount" type="number" min="0" value="0"></label>
+      <label>รับเงินสด<input id="cash" type="number" min="0" value="0"></label>
+    </div>
+    <div class="toolbar">
+      <button class="primary" onclick="renderReceipt()">คำนวณ/ออกบิล</button>
+      <button class="secondary" onclick="saveData()">บันทึกข้อมูล</button>
+      <button class="secondary" onclick="window.print()">Save เป็น PDF / พิมพ์</button>
+      <button class="danger" onclick="clearQty()">ล้างจำนวน</button>
+    </div>
+    <div class="item-grid head"><div>สินค้า</div><div>ราคา/หน่วย</div><div>จำนวน</div><div>รวม</div></div>
+    <div id="items" class="items"></div>
+    <div class="toolbar">
+      <button class="secondary" onclick="addCustomItem()">+ เพิ่มสินค้าเอง</button>
+    </div>
+  </section>
+
+  <section class="panel preview-panel">
+    <h2 class="no-print">ตัวอย่างบิล</h2>
+    <div id="receipt" class="receipt"></div>
+  </section>
+</div>
+<script>
+const defaultItems = [
+  ['บะหมี่ 1 กก.',55],['บะหมี่หยก 1 กก.',55],['เกี้ยวกุ้ง',290],['แผ่นเกี๊ยว',68],['ซอสเป็ด2โล',85],['ซอสหมูกรอบ',80],['ซอสต้มยำ',95],['จ้อปูถุงใหญ่-10ห่อ',1550],['จ้อปูถุงเล็ก-10ห่อ',930],['ขนมจีบ-แพค30ลูก',150],['น้ำหมักหมูแดง',380],['ซอสหมูแดง 1.5 กก.',65],['ซี่โครงเสฉวน',260],['ลูกชิ้นปลา',90],['หมูเด้ง',165],['ซาลาเปา-ครีม',130],['ซาลาเปา-หมูแดง',130],['ซาลาเปา-ไข่เค็มลาวา',290],['ซาลาเปาหมูสับ',180],['หมั่นโถว',55],['เคาหยก',70],['ขิงดอง 1 กก',95],['ผงน้ำซุป',60],['ผงหมักเป็ด',65],['ข้าวโจ็ก',35],['ค่าขนส่ง-ใหญ่',1200]
+];
+let items = JSON.parse(localStorage.getItem('receiptItems') || 'null') || defaultItems.map(([name,price])=>({name,price,qty:0}));
+function money(n){return Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function todayThai(){const d=new Date();return d.toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'numeric'})}
+function drawItems(){
+  const box=document.getElementById('items'); box.innerHTML='';
+  items.forEach((it,i)=>{const div=document.createElement('div');div.className='item-grid';div.innerHTML=`
+    <input value="${it.name}" onchange="items[${i}].name=this.value;renderReceipt()">
+    <input type="number" min="0" value="${it.price}" onchange="items[${i}].price=Number(this.value);renderReceipt()">
+    <input type="number" min="0" value="${it.qty}" onchange="items[${i}].qty=Number(this.value);renderReceipt()">
+    <div>${money((it.price||0)*(it.qty||0))}</div>`;box.appendChild(div)});
+}
+function renderReceipt(){
+  drawItems();
+  const sold=items.filter(it=>Number(it.qty)>0);
+  const sub=sold.reduce((s,it)=>s+Number(it.price)*Number(it.qty),0);
+  const discount=Number(document.getElementById('discount').value||0);
+  const grand=Math.max(0,sub-discount);
+  const cash=Number(document.getElementById('cash').value||0);
+  const change=Math.max(0,cash-grand);
+  const lines=sold.map(it=>`<div class="rrow"><div>${it.name}<br><span class="small">${it.qty} X @${money(it.price)}</span></div><div class="amt">${money(it.qty*it.price)}</div></div>`).join('');
+  document.getElementById('receipt').innerHTML=`
+    <div class="center receipt-title">Delivery Order / Receipt (Cash)</div>
+    <div class="center small">TAXID : 0905562004277<br>POSID : 111000AA</div><br>
+    <div class="center small">${document.getElementById('address').value.replace(/\n/g,'<br>')}<br>Tel.${document.getElementById('phone').value}</div>
+    <div class="line"></div>
+    <div class="rrow small"><div>${document.getElementById('billNo').value}<br>${document.getElementById('customer').value}</div><div class="amt">${todayThai()}</div></div>
+    <div class="line"></div>
+    <div class="rrow small"><div>Description</div><div class="amt">Amount</div></div>
+    ${lines || '<div class="center muted">ยังไม่มีรายการสินค้า</div>'}
+    <div class="line"></div>
+    <div class="rrow total"><div>รวมเงิน / Total</div><div class="amt">${money(sub)}</div></div>
+    <div class="rrow"><div>ส่วนลด / Discount</div><div class="amt">${money(discount)}</div></div>
+    <div class="rrow total"><div>รวมทั้งสิ้น / Grand Total</div><div class="amt">${money(grand)}</div></div>
+    <div class="rrow"><div>Cash</div><div class="amt">${money(cash)}</div></div>
+    <div class="rrow"><div>Change</div><div class="amt">${money(change)}</div></div>
+    <br><div class="center">...THANK YOU...</div><br>
+    <div class="small">Cashier : supervisor</div>`;
+}
+function saveData(){localStorage.setItem('receiptItems',JSON.stringify(items));alert('บันทึกข้อมูลในเครื่องแล้ว')}
+function clearQty(){items.forEach(it=>it.qty=0);renderReceipt()}
+function addCustomItem(){items.push({name:'สินค้าใหม่',price:0,qty:0});renderReceipt()}
+document.querySelectorAll('input,textarea').forEach(el=>el.addEventListener('input',renderReceipt));
+drawItems();renderReceipt();
+</script>
+</body>
+</html>
