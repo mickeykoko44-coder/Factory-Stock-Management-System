@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Factory Stock Management System</title>
+<style>
+*{box-sizing:border-box;font-family:Arial,sans-serif}
+body{margin:0;background:#f4f6f8;color:#1f2937}
+header{background:linear-gradient(135deg,#111827,#2563eb);color:white;padding:24px;text-align:center}
+.container{max-width:1280px;margin:24px auto;padding:0 16px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+button{border:0;border-radius:10px;padding:10px 14px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer}
+button:hover{background:#1d4ed8}
+button:disabled{background:#9ca3af!important;cursor:not-allowed!important;opacity:.78}
+.tab-btn{background:#6b7280}.tab-btn.active{background:#2563eb}
+.danger{background:#dc2626}.secondary{background:#0f766e}.warning{background:#d97706}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:18px}
+.card{background:#fff;border-radius:16px;padding:18px;box-shadow:0 4px 14px rgba(0,0,0,.08);margin-bottom:16px}
+.page{display:none}.page.active{display:block}
+label{display:block;margin-top:12px;font-weight:700}
+input,select,textarea{width:100%;padding:10px;margin-top:6px;border:1px solid #d1d5db;border-radius:10px;font-size:15px}
+table{width:100%;border-collapse:collapse;margin-top:12px;background:#fff}
+th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:middle}
+th{background:#e5e7eb;position:sticky;top:0;z-index:1}
+.table-wrap{overflow:auto;max-height:520px;border-radius:12px;border:1px solid #e5e7eb}
+.summary-box{font-size:24px;font-weight:800;color:#2563eb}
+.message{margin-top:12px;padding:12px;border-radius:10px;display:none}
+.message.ok{display:block;background:#dcfce7;color:#166534}
+.message.error{display:block;background:#fee2e2;color:#991b1b}
+.hint{color:#6b7280;font-size:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.row>div{flex:1;min-width:220px}
+.hidden{display:none!important}.low-stock{color:#dc2626;font-weight:800}
+.center-toast{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#16a34a;color:white;padding:24px 36px;border-radius:18px;box-shadow:0 16px 48px rgba(0,0,0,.28);font-size:24px;font-weight:900;z-index:9999;text-align:center;min-width:280px;animation:pop .2s ease-out}
+.center-toast.error{background:#dc2626}.center-toast .small{font-size:14px;font-weight:500;margin-top:8px}
+@keyframes pop{from{opacity:0;transform:translate(-50%,-45%) scale(.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.chart-wrap{overflow:auto;border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff}
+canvas.analytics-chart{width:100%;max-width:860px;height:420px;background:white}
+.receipt-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:18px 0}
+.receipt-paper{max-width:620px;margin:0 auto;background:#fff;padding:24px;box-shadow:0 4px 18px rgba(0,0,0,.15);color:#111;font-size:14px;line-height:1.35}
+.receipt-center{text-align:center}.receipt-title{font-size:22px;font-weight:800;margin-bottom:10px}.receipt-divider{border-top:1px dashed #111;margin:10px 0}
+.receipt-meta{display:flex;justify-content:space-between;gap:12px}.receipt-table{width:100%;border-collapse:collapse;margin-top:8px}.receipt-table th,.receipt-table td{border:0;padding:5px 0;vertical-align:top}.receipt-table th{background:#fff;border-bottom:1px dashed #111}.receipt-table td:nth-child(2),.receipt-table th:nth-child(2){text-align:center;width:80px}.receipt-table td:nth-child(3),.receipt-table th:nth-child(3){text-align:right;width:120px}.receipt-item-detail{margin-left:24px;color:#333;font-size:13px}.receipt-summary{margin-top:10px;border-top:1px dashed #111;padding-top:8px}.receipt-summary-row{display:flex;justify-content:space-between;margin:4px 0}.receipt-grand{font-size:18px;font-weight:800}
+@media print{header,.tabs,.no-print,footer{display:none!important}.page{display:none!important}#analytics{display:block!important}.card{box-shadow:none;border:1px solid #ddd;break-inside:avoid}.receipt-actions{display:none!important}}
+
+.order-preview-modal{
+  position:fixed;inset:0;background:rgba(15,23,42,.65);z-index:10000;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.order-preview-box{background:white;border-radius:18px;max-width:760px;width:100%;max-height:92vh;overflow:auto;padding:18px;box-shadow:0 24px 80px rgba(0,0,0,.35)}
+.order-preview-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:12px 0}
+.order-image-canvas{display:block;max-width:100%;margin:0 auto;border:1px solid #e5e7eb;border-radius:10px;background:white}
+.price-edit-input{max-width:120px}
+.owner-only-note{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:10px;border-radius:10px;margin:8px 0}
+
+</style>
+</head>
+<body>
+<header><h1 id="mainTitle">หน้าล็อคอิน</h1><p id="mainSubtitle">กรุณาเข้าสู่ระบบเพื่อใช้งาน</p></header>
+
+<div id="loginApp" class="container"></div>
+<div id="publicOrderApp" class="container hidden"></div>
+
+<div id="adminApp" class="container hidden">
+  <div class="tabs" id="roleTabs"></div>
+
+  <section id="dashboard" class="page active">
+    <div class="grid">
+      <div class="card"><h3>จำนวนสินค้า</h3><div id="totalProducts" class="summary-box">0</div></div>
+      <div class="card"><h3>จำนวนลูกค้า</h3><div id="totalCustomers" class="summary-box">0</div></div>
+      <div class="card"><h3>มูลค่าสต๊อก</h3><div id="totalValue" class="summary-box">0 บาท</div></div>
+      <div class="card"><h3>Pending Orders</h3><div id="pendingOrders" class="summary-box">0</div></div>
+    </div>
+    <div class="card">
+      <h2>Stock Real-time จาก Google Sheets</h2>
+      <button class="secondary" onclick="oneTimeClick(this, loadAllData)">Refresh</button>
+      <button class="secondary" onclick="downloadStockAsImage()">Download Stock เป็นรูปภาพ</button>
+      <div class="table-wrap"><table><thead><tr><th>รหัส</th><th>สินค้า</th><th>คงเหลือ</th><th>หน่วย</th><th>ราคา</th><th>มูลค่า</th></tr></thead><tbody id="stockTable"></tbody></table></div>
+    </div>
+  </section>
+
+
+  <section id="stockMovement" class="page">
+    <div class="card">
+      <h2>ประวัติการเปลี่ยนแปลงสต๊อก</h2>
+      <p class="hint">แสดงการเปลี่ยนจำนวนสินค้าแต่ละชนิด เวลาเกิดรายการ จำนวนที่เปลี่ยน และคงเหลือหลังรายการ</p>
+      <div class="row">
+        <div><label>ค้นหาสินค้า / Source / Reference</label><input id="movementSearch" placeholder="ค้นหา..." oninput="renderStockMovements()"></div>
+        <div><label>ชนิดรายการ</label><select id="movementTypeFilter" onchange="renderStockMovements()"><option value="">ทั้งหมด</option><option value="IN">IN</option><option value="OUT">OUT</option></select></div>
+        <div><label>จำนวนแถวล่าสุด</label><select id="movementLimit" onchange="renderStockMovements()"><option value="50">50</option><option value="100">100</option><option value="300">300</option><option value="9999">ทั้งหมด</option></select></div>
+      </div>
+      <button class="secondary" onclick="oneTimeClick(this, loadAllData)">Refresh</button>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>เวลา</th><th>วันที่</th><th>รหัส</th><th>สินค้า</th><th>เปลี่ยนแปลง</th><th>ก่อนหน้า</th><th>คงเหลือหลังรายการ</th><th>ประเภท</th><th>Source</th><th>Reference</th><th>User</th><th>หมายเหตุ</th>
+            </tr>
+          </thead>
+          <tbody id="stockMovementTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="products" class="page">
+    <div class="card"><h2>เพิ่มสินค้าใหม่</h2><div class="row"><div><label>ชื่อสินค้า</label><input id="newProductName"></div><div><label>หน่วย</label><input id="newProductUnit" value="ชิ้น"></div><div><label>ราคา</label><input id="newProductPrice" type="number" min="0" value="50"></div></div><button onclick="oneTimeClick(this, addProduct)">เพิ่มสินค้าและบันทึกลงชีท</button><div id="productMessage" class="message"></div></div>
+    <div class="card"><h2>รายการสินค้า</h2><div class="table-wrap"><table><thead><tr><th>รหัส</th><th>สินค้า</th><th>หน่วย</th><th>ราคา</th></tr></thead><tbody id="productTable"></tbody></table></div></div>
+  </section>
+
+  <section id="customers" class="page">
+    <div class="card"><h2>เพิ่มลูกค้าใหม่ + สร้าง Login อัตโนมัติ</h2><div class="row"><div><label>ชื่อลูกค้า/ร้านค้า</label><input id="newCustomerName"></div><div><label>กลุ่ม/หมายเหตุ</label><input id="newCustomerGroup"></div><div><label>Password เริ่มต้น (ว่าง = auto)</label><input id="newCustomerPassword"></div></div><label>เลือกสินค้าที่ลูกค้าคนนี้สั่งได้</label><div id="allowedProductCheckboxes" class="grid"></div><button onclick="oneTimeClick(this, addCustomer)">เพิ่มลูกค้าและบันทึกลงชีท</button><div id="customerMessage" class="message"></div></div>
+    <div class="card"><h2>รายชื่อลูกค้า</h2><div class="table-wrap"><table><thead><tr><th>รหัส</th><th>ร้านค้า</th><th>กลุ่ม</th><th>จำนวนสินค้าที่สั่งได้</th><th>ลิงก์ร้านค้า</th></tr></thead><tbody id="customerTable"></tbody></table></div></div>
+  </section>
+
+  <section id="production" class="page"><div class="card"><h2>บันทึกผลิตเข้า</h2><div class="row"><div><label>วันที่</label><input id="prodDate" type="date"></div><div><label>สินค้า</label><select id="prodProduct"></select></div><div><label>จำนวน</label><input id="prodQty" type="number" min="0"></div><div><label>ชื่อคนใส่ข้อมูล</label><input id="prodCreatedBy" placeholder="เช่น สมชาย"></div></div><button onclick="oneTimeClick(this, addProduction)">บันทึกผลิตเข้า</button><div id="productionMessage" class="message"></div></div></section>
+
+  <section id="sales" class="page"><div class="card"><h2>บันทึกขายออก Manual</h2><div class="row"><div><label>วันที่</label><input id="saleDate" type="date"></div><div><label>ลูกค้า</label><select id="saleCustomer" onchange="renderSaleItems()"></select></div></div><div class="table-wrap"><table><thead><tr><th>สินค้า</th><th>ราคา</th><th>คงเหลือ</th><th>จำนวนขาย</th></tr></thead><tbody id="saleItems"></tbody></table></div><button onclick="oneTimeClick(this, addSale)">บันทึกขายออก</button> <button class="secondary" onclick="openReceiptManual('sales')">สร้างบิลเงินสด</button><div id="salesMessage" class="message"></div></div></section>
+
+  <section id="retail" class="page"><div class="card"><h2>ขายปลีก</h2><div class="row"><div><label>วันที่</label><input id="retailDate" type="date"></div><div><label>ชื่อลูกค้า</label><input id="retailCustomerName" placeholder="ชื่อลูกค้าขายปลีก"></div><div><label>เบอร์โทร</label><input id="retailPhone" placeholder="เบอร์โทร"></div><div><label>หมายเหตุ</label><input id="retailNote" placeholder="เช่น หน้าร้าน / เงินสด"></div></div><div class="table-wrap"><table><thead><tr><th>สินค้า</th><th>ราคาปกติ</th><th>ราคาขายจริง</th><th>คงเหลือ</th><th>จำนวนขายปลีก</th></tr></thead><tbody id="retailItems"></tbody></table></div><button onclick="oneTimeClick(this, addRetailSale)">บันทึกขายปลีก</button> <button class="secondary" onclick="openReceiptManual('retail')">สร้างบิลเงินสด</button><div id="retailMessage" class="message"></div></div></section>
+
+  <section id="orders" class="page"><div class="card"><h2>Online Orders</h2><button class="secondary" onclick="oneTimeClick(this, loadAllData)">Refresh</button><div class="table-wrap"><table><thead><tr><th>Order</th><th>ร้านค้า</th><th>วันที่ส่งฟอร์ม</th><th>วันที่ต้องการให้ส่งสินค้า</th><th>ชื่อผู้สั่ง</th><th>เบอร์โทร</th><th>รายการ</th><th>ยอดรวม</th><th>Status</th><th>Order Action</th></tr></thead><tbody id="ordersTable"></tbody></table></div><div id="orderMessage" class="message"></div></div></section>
+
+  <section id="analytics" class="page">
+    <div class="card"><h2>Sales Analytics</h2><div class="row"><div><label>รูปแบบรายงาน</label><select id="analyticsMode" onchange="toggleAnalyticsPeriod()"><option value="month">รายเดือน</option><option value="year">รายปี</option></select></div><div id="monthBox"><label>เดือน</label><input id="analyticsMonth" type="month"></div><div id="yearBox" class="hidden"><label>ปี</label><input id="analyticsYear" type="number" min="2000" max="2100"></div><div><button onclick="renderAnalytics()">สร้างสรุป</button></div><div><button class="secondary" onclick="window.print()">Print / Save PDF</button></div></div></div>
+    <div class="grid"><div class="card"><h3>Top 8 ร้านค้า ตามยอดขาย</h3><div class="chart-wrap"><canvas id="topShopChart" class="analytics-chart" width="860" height="420"></canvas></div></div><div class="card"><h3>Top 8 สินค้าขายดี</h3><div class="chart-wrap"><canvas id="topProductChart" class="analytics-chart" width="860" height="420"></canvas></div></div></div>
+  </section>
+</div>
+
+<footer style="text-align:center;padding:20px;color:#6b7280">Google Sheets Dynamic Version</footer>
+
+<script>
+// ใส่ Google Apps Script Web App URL ตรงนี้
+const API_URL = "PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
+let state={products:[],customers:[],customerProducts:[],productionIn:[],salesOut:[],orders:[],stockMovements:[],stock:{},user:null};
+
+function today(){return new Date().toISOString().split('T')[0]}
+function nowText(){return new Date().toLocaleString('th-TH')}
+function money(n){return Number(n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function toNonNegativeNumber(v){const n=Number(v||0);return Number.isFinite(n)&&n>0?n:0}
+function safe(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function showMessage(id,text,type){const el=document.getElementById(id);if(!el)return;el.textContent=text;el.className='message '+type}
+function showCenterSuccess(text='ทำสำเร็จ',sub=''){const old=document.querySelector('.center-toast');if(old)old.remove();const box=document.createElement('div');box.className='center-toast';box.innerHTML=`<div>${safe(text)}</div>${sub?`<div class="small">${safe(sub)}</div>`:''}`;document.body.appendChild(box);setTimeout(()=>box.remove(),1600)}
+function showCenterError(text='เกิดข้อผิดพลาด',sub=''){const old=document.querySelector('.center-toast');if(old)old.remove();const box=document.createElement('div');box.className='center-toast error';box.innerHTML=`<div>${safe(text)}</div>${sub?`<div class="small">${safe(sub)}</div>`:''}`;document.body.appendChild(box);setTimeout(()=>box.remove(),2400)}
+async function oneTimeClick(btn,fn){if(btn.dataset.locked==='true')return;btn.dataset.locked='true';btn.disabled=true;const old=btn.textContent;btn.textContent='กำลังทำรายการ...';try{await fn();}catch(e){showCenterError('ทำรายการไม่สำเร็จ',e.message||'');btn.disabled=false;btn.dataset.locked='false';btn.textContent=old;return;}setTimeout(()=>{if(document.body.contains(btn)){btn.disabled=false;btn.dataset.locked='false';btn.textContent=old}},1600)}
+async function api(action,payload={}){if(API_URL.includes('PASTE_YOUR'))throw new Error('ยังไม่ได้ใส่ API_URL ใน index.html');const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,...payload})});return await res.json();}
+
+function renderLogin(){
+  document.getElementById('mainTitle').textContent='หน้าล็อคอิน';
+  document.getElementById('mainSubtitle').textContent='เข้าสู่ระบบเพื่อใช้งาน';
+  document.getElementById('loginApp').innerHTML=`<div class="card" style="max-width:420px;margin:auto"><h2>เข้าสู่ระบบ</h2><label>Username</label><input id="loginUser" autocomplete="username"><label>Password</label><input id="loginPass" type="password" autocomplete="current-password"><button onclick="oneTimeClick(this, login)">Login</button><div id="loginMessage" class="message"></div></div>`;
+}
+function setupHeader(){document.getElementById('mainTitle').textContent='Factory Stock Management System';document.getElementById('mainSubtitle').textContent=`Role: ${state.user?.role||''} | ${state.user?.displayName||state.user?.username||''}`}
+function showPage(id,btn){document.querySelectorAll('#adminApp .page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');if(btn)btn.classList.add('active');if(id==='analytics')renderAnalytics();if(id==='retail')renderRetailItems();if(id==='stockMovement')renderStockMovements();}
+function renderTabs(){
+  const role=state.user.role;
+  let tabs=[];
+  if(role==='owner')tabs=[['dashboard','Dashboard'],['stockMovement','ประวัติสต๊อก'],['products','รายการสินค้า'],['customers','ลูกค้า'],['production','ผลิตเข้า'],['sales','ขายออก'],['retail','ขายปลีก'],['orders','Orders'],['analytics','Analytics']];
+  if(role==='admin')tabs=[['stockMovement','ประวัติสต๊อก'],['products','รายการสินค้า'],['production','ผลิตเข้า'],['sales','ขายออก'],['retail','ขายปลีก'],['orders','Orders']];
+  document.getElementById('roleTabs').innerHTML=tabs.map((t,i)=>`<button class="tab-btn ${i===0?'active':''}" onclick="showPage('${t[0]}',this)">${t[1]}</button>`).join('')+`<button class="danger" onclick="logout()">Logout</button>`;
+  document.querySelectorAll('#adminApp .page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(tabs[0]?.[0]||'products').classList.add('active');
+}
+async function login(){try{const username=document.getElementById('loginUser').value.trim();const password=document.getElementById('loginPass').value;const r=await api('login',{username,password});if(!r.success)return showMessage('loginMessage',r.error,'error');state.user=r.user;localStorage.setItem('factory_user',JSON.stringify(r.user));if(r.user.role==='owner'||r.user.role==='admin'){document.getElementById('loginApp').classList.add('hidden');document.getElementById('adminApp').classList.remove('hidden');setupHeader();renderTabs();await loadAllData();}else{document.getElementById('loginApp').classList.add('hidden');document.getElementById('publicOrderApp').classList.remove('hidden');setupHeader();await loadAllData();renderCustomerOrder();}}catch(e){showMessage('loginMessage',e.message,'error')}}
+function logout(){localStorage.removeItem('factory_user');location.reload()}
+async function loadAllData(){const r=await api('getAllData',{username:state.user?.username});if(!r.success)throw new Error(r.error);Object.assign(state,r);renderAll();}
+function renderAll(){renderDashboard();renderStockMovements();renderProducts();renderCustomers();renderDropdowns();renderOrders();renderAllowedProductCheckboxes();renderSaleItems();renderRetailItems();}
+function renderDashboard(){if(!document.getElementById('stockTable'))return;document.getElementById('totalProducts').textContent=state.products.length;document.getElementById('totalCustomers').textContent=state.customers.filter(c=>c.customer_id!=='RETAIL').length;document.getElementById('pendingOrders').textContent=[...new Set(state.orders.filter(o=>o.status==='pending').map(o=>o.order_id))].length;let total=0;const rows=state.products.map(p=>{const q=toNonNegativeNumber(state.stock[p.product_id]);const price=toNonNegativeNumber(p.price);const v=q*price;total+=v;return `<tr><td>${safe(p.product_id)}</td><td>${safe(p.product_name)}</td><td class="${q<=0?'low-stock':''}">${q.toFixed(2)}</td><td>${safe(p.unit)}</td><td>${money(price)}</td><td>${money(v)}</td></tr>`}).join('');document.getElementById('totalValue').textContent=money(total)+' บาท';document.getElementById('stockTable').innerHTML=rows||'<tr><td colspan="6">ไม่มีข้อมูล</td></tr>';}
+
+function normalizeDateText(v){
+  if(!v)return '';
+  try{
+    const d=new Date(v);
+    if(!isNaN(d.getTime())) return d.toLocaleString('th-TH');
+  }catch(e){}
+  return String(v);
+}
+function renderStockMovements(){
+  const tbody=document.getElementById('stockMovementTable');
+  if(!tbody)return;
+  let rows=[...(state.stockMovements||[])];
+  const q=(document.getElementById('movementSearch')?.value||'').toLowerCase();
+  const type=document.getElementById('movementTypeFilter')?.value||'';
+  const limit=Number(document.getElementById('movementLimit')?.value||50);
+  rows=rows.filter(r=>{
+    const text=[r.product_id,r.product_name,r.source,r.reference_id,r.user,r.note].join(' ').toLowerCase();
+    return (!q || text.includes(q)) && (!type || String(r.movement_type)===type);
+  });
+  rows.sort((a,b)=>String(b.timestamp||'').localeCompare(String(a.timestamp||'')));
+  rows=rows.slice(0,limit);
+  tbody.innerHTML=rows.map(r=>{
+    const delta=Number(r.change_qty||0);
+    const cls=delta<0?'low-stock':'';
+    const sign=delta>0?'+':'';
+    return `<tr><td>${safe(normalizeDateText(r.timestamp))}</td><td>${safe(normalizeDateText(r.date))}</td><td>${safe(r.product_id)}</td><td>${safe(r.product_name)}</td><td class="${cls}">${sign}${delta.toFixed(2)}</td><td>${Number(r.stock_before||0).toFixed(2)}</td><td><b>${Number(r.stock_after||0).toFixed(2)}</b></td><td>${safe(r.movement_type)}</td><td>${safe(r.source)}</td><td>${safe(r.reference_id)}</td><td>${safe(r.user)}</td><td>${safe(r.note)}</td></tr>`;
+  }).join('') || '<tr><td colspan="12">ยังไม่มีประวัติการเปลี่ยนสต๊อก</td></tr>';
+}
+
+function renderProducts(){
+  const isOwner=state.user?.role==='owner';
+  const headNote=isOwner?'<div class="owner-only-note">Owner สามารถแก้ราคาสินค้าและบันทึกลง Google Sheets ได้</div>':'';
+  const rows=state.products.map(p=>{
+    const price=toNonNegativeNumber(p.price);
+    const priceCell=isOwner
+      ? `<input class="price-edit-input productPriceEdit" data-product="${safe(p.product_id)}" type="number" min="0" value="${price}">`
+      : money(price);
+    const action=isOwner?`<button onclick="oneTimeClick(this,()=>updateProductPrice('${safe(p.product_id)}'))">บันทึกราคา</button>`:'';
+    return `<tr><td>${safe(p.product_id)}</td><td>${safe(p.product_name)}</td><td>${safe(p.unit)}</td><td>${priceCell}</td><td>${action}</td></tr>`;
+  }).join('');
+  const table=document.getElementById('productTable');
+  table.innerHTML=rows;
+  const productCard=table.closest('.card');
+  if(productCard && !productCard.querySelector('.owner-only-note') && isOwner){
+    productCard.insertAdjacentHTML('afterbegin', headNote);
+  }
+  const headerRow=table.closest('table').querySelector('thead tr');
+  if(headerRow && !headerRow.dataset.updated){
+    headerRow.innerHTML='<th>รหัส</th><th>สินค้า</th><th>หน่วย</th><th>ราคา</th><th>Action</th>';
+    headerRow.dataset.updated='true';
+  }
+}
+async function updateProductPrice(productId){
+  if(state.user?.role!=='owner') return showCenterError('ไม่มีสิทธิ์','เฉพาะ Owner เท่านั้น');
+  const input=document.querySelector(`.productPriceEdit[data-product="${productId}"]`);
+  const price=Number(input?.value||0);
+  if(!Number.isFinite(price)||price<0) return showCenterError('ราคาไม่ถูกต้อง','ราคาห้ามติดลบ');
+  const r=await api('updateProductPrice',{username:state.user.username,product_id:productId,price});
+  if(!r.success) return showCenterError('ทำรายการไม่สำเร็จ',r.error);
+  showCenterSuccess('ทำสำเร็จ','บันทึกราคาลงชีทแล้ว');
+  await loadAllData();
+}
+function allowedCount(cid){return state.customerProducts.filter(cp=>cp.customer_id===cid).length}
+function renderCustomers(){const base=location.origin+location.pathname;const rows=state.customers.filter(c=>c.customer_id!=='RETAIL').map(c=>`<tr><td>${safe(c.customer_id)}</td><td>${safe(c.customer_name)}</td><td>${safe(c.group||'')}</td><td>${allowedCount(c.customer_id)}</td><td><code>${base}</code></td></tr>`).join('');if(document.getElementById('customerTable'))document.getElementById('customerTable').innerHTML=rows}
+function renderDropdowns(){['prodProduct'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=state.products.map(p=>`<option value="${safe(p.product_id)}">${safe(p.product_id)} - ${safe(p.product_name)}</option>`).join('')});const saleC=document.getElementById('saleCustomer');if(saleC)saleC.innerHTML=state.customers.filter(c=>c.customer_id!=='RETAIL').map(c=>`<option value="${safe(c.customer_id)}">${safe(c.customer_id)} - ${safe(c.customer_name)}</option>`).join('');['prodDate','saleDate','retailDate'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=el.value||today()});const y=document.getElementById('analyticsYear');if(y)y.value=y.value||new Date().getFullYear();const m=document.getElementById('analyticsMonth');if(m)m.value=m.value||today().slice(0,7);}
+function renderAllowedProductCheckboxes(){const el=document.getElementById('allowedProductCheckboxes');if(!el)return;el.innerHTML=state.products.map(p=>`<label style="font-weight:400"><input type="checkbox" class="allowedProduct" value="${safe(p.product_id)}" checked style="width:auto"> ${safe(p.product_name)}</label>`).join('')}
+async function addProduct(){try{const productName=document.getElementById('newProductName').value.trim();const unit=document.getElementById('newProductUnit').value.trim()||'ชิ้น';const price=Number(document.getElementById('newProductPrice').value);if(!productName)return showMessage('productMessage','กรุณากรอกชื่อสินค้า','error');if(!Number.isFinite(price)||price<0)return showMessage('productMessage','ราคาสินค้าห้ามติดลบ','error');const r=await api('addProduct',{username:state.user.username,product_name:productName,unit,price,initial_stock:0});if(!r.success)return showMessage('productMessage',r.error,'error');showMessage('productMessage','เพิ่มสินค้าแล้ว: '+r.product_id,'ok');showCenterSuccess('ทำสำเร็จ','เพิ่มสินค้าแล้ว: '+r.product_id);document.getElementById('newProductName').value='';await loadAllData();}catch(e){showMessage('productMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}}
+async function addCustomer(){try{const allowed=[...document.querySelectorAll('.allowedProduct:checked')].map(x=>x.value);const r=await api('addCustomer',{username:state.user.username,customer_name:document.getElementById('newCustomerName').value,group:document.getElementById('newCustomerGroup').value,password:document.getElementById('newCustomerPassword').value,allowed_products:allowed});if(!r.success)return showMessage('customerMessage',r.error,'error');showMessage('customerMessage',`เพิ่มลูกค้าแล้ว: ${r.customer_id} | username: ${r.username} | password: ${r.password}`,'ok');showCenterSuccess('ทำสำเร็จ',`เพิ่มลูกค้าแล้ว: ${r.customer_id}`);await loadAllData();}catch(e){showMessage('customerMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}}
+async function addProduction(){try{const p=state.products.find(x=>x.product_id===document.getElementById('prodProduct').value);const qty=Number(document.getElementById('prodQty').value);const createdBy=document.getElementById('prodCreatedBy').value.trim();if(!p)return showMessage('productionMessage','ไม่พบสินค้า','error');if(!Number.isFinite(qty)||qty<=0)return showMessage('productionMessage','จำนวนผลิตเข้าต้องมากกว่า 0','error');if(!createdBy)return showMessage('productionMessage','กรุณากรอกชื่อคนใส่ข้อมูล','error');const r=await api('addProduction',{username:state.user.username,date:document.getElementById('prodDate').value,product_id:p.product_id,quantity:qty,created_by:createdBy});if(!r.success)return showMessage('productionMessage',r.error,'error');showMessage('productionMessage','บันทึกผลิตเข้าแล้ว','ok');showCenterSuccess('ทำสำเร็จ','บันทึกผลิตเข้าแล้ว');document.getElementById('prodQty').value='';await loadAllData();}catch(e){showMessage('productionMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}}
+function allowedProductsForCustomer(cid){const ids=state.customerProducts.filter(cp=>cp.customer_id===cid).map(cp=>cp.product_id);return state.products.filter(p=>ids.includes(p.product_id));}
+function renderSaleItems(){const cid=document.getElementById('saleCustomer')?.value;if(!cid||!document.getElementById('saleItems'))return;document.getElementById('saleItems').innerHTML=allowedProductsForCustomer(cid).map(p=>`<tr><td>${safe(p.product_name)}</td><td>${money(toNonNegativeNumber(p.price))}</td><td>${toNonNegativeNumber(state.stock[p.product_id]).toFixed(2)}</td><td><input class="saleQty" data-product="${safe(p.product_id)}" data-price="${toNonNegativeNumber(p.price)}" type="number" min="0"></td></tr>`).join('')}
+async function addSale(){try{const items=[...document.querySelectorAll('.saleQty')].map(i=>({product_id:i.dataset.product,price:Number(i.dataset.price),quantity:Number(i.value||0)})).filter(x=>x.quantity>0);if(items.length===0)return showMessage('salesMessage','กรุณาใส่จำนวนขายอย่างน้อย 1 รายการ','error');for(const item of items){const available=toNonNegativeNumber(state.stock[item.product_id]);if(item.quantity>available){const p=state.products.find(x=>x.product_id===item.product_id);return showMessage('salesMessage',`ของมีไม่พอ: ${p?.product_name||item.product_id} คงเหลือ ${available}`,'error')}}const r=await api('addSale',{username:state.user.username,date:document.getElementById('saleDate').value,customer_id:document.getElementById('saleCustomer').value,items});if(!r.success)return showMessage('salesMessage',r.error,'error');showMessage('salesMessage','บันทึกขายออกแล้ว','ok');showCenterSuccess('ทำสำเร็จ','บันทึกขายออกแล้ว');await loadAllData();}catch(e){showMessage('salesMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}}
+function renderRetailItems(){const el=document.getElementById('retailItems');if(!el)return;el.innerHTML=state.products.map(p=>`<tr><td>${safe(p.product_name)}</td><td>${money(toNonNegativeNumber(p.price))}</td><td><input class="retailPrice" data-product="${safe(p.product_id)}" type="number" min="0" value="${toNonNegativeNumber(p.price)}"></td><td>${toNonNegativeNumber(state.stock[p.product_id]).toFixed(2)}</td><td><input class="retailQty" data-product="${safe(p.product_id)}" type="number" min="0"></td></tr>`).join('')}
+async function addRetailSale(){try{
+  const customerName=document.getElementById('retailCustomerName').value.trim();
+  const phone=document.getElementById('retailPhone').value.trim();
+  const items=[...document.querySelectorAll('.retailQty')].map(i=>{
+    const productId=i.dataset.product;
+    const price=Number(document.querySelector(`.retailPrice[data-product="${productId}"]`)?.value||0);
+    return {product_id:productId,price,quantity:Number(i.value||0)};
+  }).filter(x=>x.quantity>0);
+  if(!customerName)return showMessage('retailMessage','กรุณากรอกชื่อลูกค้า','error');
+  if(items.length===0)return showMessage('retailMessage','กรุณาใส่จำนวนขายปลีกอย่างน้อย 1 รายการ','error');
+  for(const item of items){if(item.price<0)return showMessage('retailMessage','ราคาขายจริงห้ามติดลบ','error');const available=toNonNegativeNumber(state.stock[item.product_id]);if(item.quantity>available){const p=state.products.find(x=>x.product_id===item.product_id);return showMessage('retailMessage',`ของมีไม่พอ: ${p?.product_name||item.product_id} คงเหลือ ${available}`,'error')}}
+  const r=await api('addRetailSale',{username:state.user.username,date:document.getElementById('retailDate').value,customer_name:customerName,phone,note:document.getElementById('retailNote').value,items});
+  if(!r.success)return showMessage('retailMessage',r.error,'error');showMessage('retailMessage','บันทึกขายปลีกแล้ว','ok');showCenterSuccess('ทำสำเร็จ','บันทึกขายปลีกแล้ว');await loadAllData();
+}catch(e){showMessage('retailMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}}
+function groupOrders(){const map={};state.orders.forEach(o=>{if(!map[o.order_id])map[o.order_id]={...o,items:[],sum:0};map[o.order_id].items.push(o);map[o.order_id].sum+=Number(o.total||0)});return Object.values(map).sort((a,b)=>String(b.timestamp).localeCompare(String(a.timestamp)));}
+function renderOrders(){
+  const rows=groupOrders().map(o=>{
+    const itemList=o.items.map(i=>`${safe(i.product_name)} x ${safe(i.quantity)}`).join('<br>');
+    let actions='';
+    if(o.status==='pending'){
+      actions=`<button onclick="oneTimeClick(this,()=>approveOrder('${safe(o.order_id)}'))">Approve</button> <button class="danger" onclick="rejectOrder('${safe(o.order_id)}')">Not Approve</button>`;
+    }else if(o.status==='approved'){
+      actions=`<button class="secondary" onclick="oneTimeClick(this,()=>finishOrder('${safe(o.order_id)}'))">ส่งแล้ว / Finished Order</button><br><button onclick="previewOrderImage('${safe(o.order_id)}')">พิมพ์รูป</button><br><button class="secondary" onclick="openReceiptForOrder('${safe(o.order_id)}')">สร้างบิลเงินสด</button>`;
+    }else if(o.status==='finished'){
+      actions=`<button onclick="previewOrderImage('${safe(o.order_id)}')">พิมพ์รูป</button><br><button class="secondary" onclick="openReceiptForOrder('${safe(o.order_id)}')">สร้างบิลเงินสด</button>`;
+    }
+    return `<tr><td>${safe(o.order_id)}</td><td>${safe(o.customer_name)}</td><td>${safe(o.timestamp||'')}</td><td>${safe(o.delivery_date||'')}</td><td>${safe(o.ordered_by||'')}</td><td>${safe(o.phone||'')}</td><td>${itemList}</td><td>${money(o.sum)}</td><td>${safe(o.status)}</td><td>${actions}</td></tr>`;
+  }).join('');
+  document.getElementById('ordersTable').innerHTML=rows||'<tr><td colspan="10">ไม่มี order</td></tr>';
+}
+async function approveOrder(orderId){try{const orderRows=state.orders.filter(o=>o.order_id===orderId);for(const item of orderRows){const available=toNonNegativeNumber(state.stock[item.product_id]);const qty=Number(item.quantity||0);if(qty>available){const p=state.products.find(x=>x.product_id===item.product_id);showCenterError('ของมีไม่พอ',`${p?.product_name||item.product_id} คงเหลือ ${available} แต่ต้องใช้ ${qty}`);return showMessage('orderMessage',`ของมีไม่พอ: ${p?.product_name||item.product_id} คงเหลือ ${available} แต่ order ต้องใช้ ${qty}`,'error')}}const r=await api('approveOrder',{username:state.user.username,orderId});if(!r.success)return showMessage('orderMessage',r.error,'error');showMessage('orderMessage','Approve แล้ว และตัด stock ใน SalesOut','ok');showCenterSuccess('ทำสำเร็จ','Approve order แล้ว');await loadAllData();}catch(e){showMessage('orderMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}}
+async function rejectOrder(orderId){
+  const ok=confirm('ยืนยัน Not Approve order นี้หรือไม่?');
+  if(!ok)return;
+  try{
+    const r=await api('rejectOrder',{username:state.user.username,orderId});
+    if(!r.success)return showMessage('orderMessage',r.error,'error');
+    showMessage('orderMessage','Not Approve order แล้ว','ok');
+    showCenterSuccess('ทำสำเร็จ','Not Approve order แล้ว');
+    await loadAllData();
+  }catch(e){showMessage('orderMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}
+}
+async function finishOrder(orderId){
+  try{
+    const r=await api('finishOrder',{username:state.user.username,orderId});
+    if(!r.success)return showMessage('orderMessage',r.error,'error');
+    showMessage('orderMessage','Finished Order แล้ว','ok');
+    showCenterSuccess('ทำสำเร็จ','ส่งเสร็จแล้ว');
+    await loadAllData();
+  }catch(e){showMessage('orderMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}
+}
+function renderCustomerOrder(){const cid=state.user.customer_id;const customer=state.customers.find(c=>c.customer_id===cid);const products=allowedProductsForCustomer(cid);const minDate=tomorrow();document.getElementById('publicOrderApp').innerHTML=`<div class="card"><h2>ฟอร์มสั่งสินค้า</h2><p><b>${safe(customer?.customer_name||cid)}</b></p><label>วันที่ส่งรายการ / วันที่กรอก</label><input id="formSentDate" value="${nowText()}" readonly><label>วันที่ต้องการจัดส่งของ</label><input id="orderDate" type="date" min="${minDate}" value="${minDate}"><label>ชื่อผู้สั่ง</label><input id="orderedBy"><label>เบอร์โทร</label><input id="phone"><div class="table-wrap"><table><thead><tr><th>สินค้า</th><th>ราคา</th><th>จำนวน</th></tr></thead><tbody>${products.map(p=>`<tr><td>${safe(p.product_name)}</td><td>${money(toNonNegativeNumber(p.price))}</td><td><input class="orderQty" data-product="${safe(p.product_id)}" type="number" min="0"></td></tr>`).join('')}</tbody></table></div><button onclick="oneTimeClick(this, submitOrder)">ส่งคำสั่งซื้อ</button><button class="danger" onclick="logout()">Logout</button><div id="orderSubmitMessage" class="message"></div></div>`}
+async function submitOrder(){try{const items=[...document.querySelectorAll('.orderQty')].map(i=>({product_id:i.dataset.product,quantity:Number(i.value||0)})).filter(x=>x.quantity>0);if(items.length===0)return showMessage('orderSubmitMessage','กรุณาใส่จำนวนสินค้าอย่างน้อย 1 รายการ','error');const r=await api('submitOrder',{customer_id:state.user.customer_id,delivery_date:document.getElementById('orderDate').value,form_sent_date:document.getElementById('formSentDate').value,ordered_by:document.getElementById('orderedBy').value,phone:document.getElementById('phone').value,items});if(!r.success)return showMessage('orderSubmitMessage',r.error,'error');showMessage('orderSubmitMessage','ส่งคำสั่งซื้อสำเร็จ เลขที่ '+r.order_id,'ok');showCenterSuccess('ส่งออเดอร์สำเร็จ','เลขที่ '+r.order_id);document.querySelectorAll('.orderQty').forEach(i=>i.disabled=true)}catch(e){showMessage('orderSubmitMessage',e.message,'error');showCenterError('ส่งออเดอร์ไม่สำเร็จ',e.message)}}
+function toggleAnalyticsPeriod(){document.getElementById('monthBox').classList.toggle('hidden',document.getElementById('analyticsMode').value!=='month');document.getElementById('yearBox').classList.toggle('hidden',document.getElementById('analyticsMode').value!=='year')}
+function analyticsRows(){const mode=document.getElementById('analyticsMode').value;const month=document.getElementById('analyticsMonth').value;const year=document.getElementById('analyticsYear').value;return state.salesOut.filter(s=>mode==='year'?String(s.date).startsWith(String(year)):String(s.date).startsWith(month))}
+function renderAnalytics(){if(!document.getElementById('topShopChart'))return;toggleAnalyticsPeriod();const rows=analyticsRows();const byCustomer={},byProduct={};rows.forEach(s=>{const c=state.customers.find(x=>x.customer_id===s.customer_id);const p=state.products.find(x=>x.product_id===s.product_id);byCustomer[s.customer_id]=(byCustomer[s.customer_id]||{name:c?.customer_name||s.customer_id,value:0});byCustomer[s.customer_id].value+=Number(s.total||0);byProduct[s.product_id]=(byProduct[s.product_id]||{name:p?.product_name||s.product_id,value:0});byProduct[s.product_id].value+=Number(s.total||0)});drawBarChart('topShopChart',Object.values(byCustomer).sort((a,b)=>b.value-a.value).slice(0,8),'Top 8 ร้านค้า');drawBarChart('topProductChart',Object.values(byProduct).sort((a,b)=>b.value-a.value).slice(0,8),'Top 8 สินค้า')}
+function drawBarChart(canvasId,data,title){const c=document.getElementById(canvasId),ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.fillStyle='#111827';ctx.font='bold 18px Arial';ctx.fillText(title,24,28);const left=70,top=50,bottom=110,right=25,chartW=w-left-right,chartH=h-top-bottom;ctx.strokeStyle='#111827';ctx.beginPath();ctx.moveTo(left,top);ctx.lineTo(left,top+chartH);ctx.lineTo(left+chartW,top+chartH);ctx.stroke();const max=Math.max(...data.map(d=>d.value),1);ctx.fillStyle='#6b7280';ctx.font='12px Arial';for(let i=0;i<=4;i++){const y=top+chartH-(chartH*i/4);const val=max*i/4;ctx.fillText(money(val),5,y+4);ctx.strokeStyle='#e5e7eb';ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(left+chartW,y);ctx.stroke()}const barW=chartW/Math.max(data.length,1)*0.58;data.forEach((d,i)=>{const x=left+(chartW/data.length)*i+(chartW/data.length-barW)/2;const bh=chartH*(d.value/max);const y=top+chartH-bh;ctx.fillStyle='#2563eb';ctx.fillRect(x,y,barW,bh);ctx.fillStyle='#111827';ctx.font='12px Arial';ctx.save();ctx.translate(x+barW/2,top+chartH+12);ctx.rotate(Math.PI/2);ctx.fillText(d.name,0,0);ctx.restore();ctx.fillStyle='#334155';ctx.fillText(money(d.value),x-8,y-6)})}
+
+function getGroupedOrder(orderId){return groupOrders().find(o=>String(o.order_id)===String(orderId))}
+function buildOrderImageCanvas(orderId){
+  const o=getGroupedOrder(orderId);
+  if(!o) throw new Error('ไม่พบ order');
+  const rowH=32, width=820, headerH=190, footerH=80;
+  const height=Math.max(420, headerH + rowH*(o.items.length+1) + footerH);
+  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);
+  ctx.fillStyle='#111827';ctx.font='bold 28px Arial';ctx.textAlign='center';
+  ctx.fillText('ใบสั่งซื้อ / Order Summary',width/2,42);
+  ctx.font='15px Arial';ctx.fillText('Factory Stock Management System',width/2,68);
+  ctx.textAlign='left';ctx.fillStyle='#111827';ctx.font='16px Arial';
+  const left=40, right=width-40;
+  ctx.fillText('Order: '+o.order_id,left,105);
+  ctx.fillText('ร้านค้า: '+(o.customer_name||''),left,130);
+  ctx.fillText('วันที่ส่งฟอร์ม: '+(o.timestamp||''),left,155);
+  ctx.fillText('วันที่ต้องการจัดส่ง: '+(o.delivery_date||''),left,180);
+  ctx.fillText('ชื่อผู้สั่ง: '+(o.ordered_by||''),430,130);
+  ctx.fillText('เบอร์โทร: '+(o.phone||''),430,155);
+  let y=210;
+  ctx.strokeStyle='#111';ctx.beginPath();ctx.moveTo(left,y-18);ctx.lineTo(right,y-18);ctx.stroke();
+  ctx.font='bold 16px Arial';
+  ctx.fillText('สินค้า',left,y);
+  ctx.fillText('จำนวน',430,y);
+  ctx.fillText('ราคา',540,y);
+  ctx.fillText('รวม',660,y);
+  ctx.beginPath();ctx.moveTo(left,y+10);ctx.lineTo(right,y+10);ctx.stroke();
+  y+=rowH;
+  ctx.font='15px Arial';
+  let total=0;
+  o.items.forEach(item=>{
+    const qty=Number(item.quantity||0), price=Number(item.price||0), amount=Number(item.total||qty*price);
+    total+=amount;
+    ctx.fillText(String(item.product_name||''),left,y);
+    ctx.fillText(String(qty),430,y);
+    ctx.fillText(money(price),540,y);
+    ctx.fillText(money(amount),660,y);
+    y+=rowH;
+  });
+  ctx.beginPath();ctx.moveTo(left,y-18);ctx.lineTo(right,y-18);ctx.stroke();
+  ctx.font='bold 18px Arial';
+  ctx.fillText('รวมทั้งสิ้น',540,y+10);
+  ctx.fillText(money(total)+' บาท',660,y+10);
+  ctx.textAlign='center';ctx.font='bold 18px Arial';ctx.fillText('THANK YOU',width/2,height-30);
+  return canvas;
+}
+function previewOrderImage(orderId){
+  try{
+    const canvas=buildOrderImageCanvas(orderId);
+    const modal=document.createElement('div');
+    modal.className='order-preview-modal';
+    modal.innerHTML=`<div class="order-preview-box"><h2 style="text-align:center;margin-top:0">Preview รูป Order</h2><div class="order-preview-actions"><button id="saveOrderImageBtn">Save PNG</button><button id="copyOrderImageBtn" class="secondary">Copy รูป</button><button class="danger" id="closeOrderPreviewBtn">ปิด</button></div><div id="orderCanvasHolder"></div></div>`;
+    document.body.appendChild(modal);
+    canvas.className='order-image-canvas';
+    modal.querySelector('#orderCanvasHolder').appendChild(canvas);
+    modal.querySelector('#saveOrderImageBtn').onclick=()=>{const a=document.createElement('a');a.download='order-'+orderId+'.png';a.href=canvas.toDataURL('image/png');a.click();};
+    modal.querySelector('#copyOrderImageBtn').onclick=async()=>{
+      try{
+        const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+        await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+        showCenterSuccess('Copy รูปแล้ว');
+      }catch(e){showCenterError('Copy ไม่สำเร็จ','browser อาจไม่รองรับ ให้กด Save PNG แทน');}
+    };
+    modal.querySelector('#closeOrderPreviewBtn').onclick=()=>modal.remove();
+  }catch(e){showCenterError('เปิด Preview ไม่สำเร็จ',e.message)}
+}
+
+
+function receiptUrl(params={}){
+  const base = location.origin + location.pathname.replace(/\/[^\/]*$/, '/') + 'receipt.html';
+  const q = new URLSearchParams(params);
+  return base + '?' + q.toString();
+}
+function openReceiptManual(type='manual'){
+  const url = receiptUrl({source:type});
+  window.open(url, '_blank');
+}
+function openReceiptForOrder(orderId){
+  const url = receiptUrl({source:'order', orderId});
+  window.open(url, '_blank');
+}
+
+function downloadStockAsImage(){const products=state.products||[];const rowH=34,headerH=92,footerH=42,width=1100,height=Math.max(260,headerH+rowH*(products.length+1)+footerH);const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);ctx.fillStyle='#111827';ctx.font='bold 28px Arial';ctx.fillText('Factory Stock Real-time',30,42);ctx.font='16px Arial';ctx.fillStyle='#374151';ctx.fillText('Export: '+nowText(),30,70);const cols=[{x:30,t:'รหัส'},{x:150,t:'สินค้า'},{x:480,t:'คงเหลือ'},{x:620,t:'หน่วย'},{x:740,t:'ราคา'},{x:890,t:'มูลค่า'}];let y=headerH;ctx.fillStyle='#e5e7eb';ctx.fillRect(24,y-24,width-48,rowH);ctx.fillStyle='#111827';ctx.font='bold 16px Arial';cols.forEach(col=>ctx.fillText(col.t,col.x,y-2));y+=rowH;ctx.font='15px Arial';let total=0;products.forEach((p,idx)=>{const q=toNonNegativeNumber(state.stock[p.product_id]);const price=toNonNegativeNumber(p.price);const value=q*price;total+=value;if(idx%2===0){ctx.fillStyle='#f9fafb';ctx.fillRect(24,y-24,width-48,rowH)}ctx.fillStyle=q<=0?'#dc2626':'#111827';ctx.fillText(String(p.product_id||''),cols[0].x,y-2);ctx.fillStyle='#111827';ctx.fillText(String(p.product_name||''),cols[1].x,y-2);ctx.fillText(q.toFixed(2),cols[2].x,y-2);ctx.fillText(String(p.unit||''),cols[3].x,y-2);ctx.fillText(money(price),cols[4].x,y-2);ctx.fillText(money(value),cols[5].x,y-2);y+=rowH});ctx.strokeStyle='#d1d5db';ctx.beginPath();ctx.moveTo(24,y-20);ctx.lineTo(width-24,y-20);ctx.stroke();ctx.fillStyle='#111827';ctx.font='bold 18px Arial';ctx.fillText('มูลค่าสต๊อกรวม: '+money(total)+' บาท',30,y+14);const a=document.createElement('a');a.download='stock-realtime-'+today()+'.png';a.href=canvas.toDataURL('image/png');a.click();showCenterSuccess('ดาวน์โหลดรูปภาพแล้ว','Stock real-time PNG')}
+window.onload=async()=>{renderLogin();const saved=localStorage.getItem('factory_user');if(saved){state.user=JSON.parse(saved);try{if(state.user.role==='owner'||state.user.role==='admin'){document.getElementById('loginApp').classList.add('hidden');document.getElementById('adminApp').classList.remove('hidden');setupHeader();renderTabs();await loadAllData();}else{document.getElementById('loginApp').classList.add('hidden');document.getElementById('publicOrderApp').classList.remove('hidden');setupHeader();await loadAllData();renderCustomerOrder();}}catch(e){localStorage.removeItem('factory_user');document.getElementById('loginApp').classList.remove('hidden');alert(e.message)}}}
+</script>
+</body>
+</html>
