@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ใบเสร็จอัตโนมัติ</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:Tahoma,Arial,sans-serif;margin:0;background:#f4f4f5;color:#111827}
+    header{background:#111827;color:white;padding:18px 24px}
+    h1{margin:0;font-size:24px}
+    .wrap{display:grid;grid-template-columns:1fr 420px;gap:20px;padding:20px;max-width:1200px;margin:auto}
+    .panel{background:white;border-radius:14px;padding:18px;box-shadow:0 8px 25px #0001}
+    button{border:0;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:700;margin-right:8px}
+    .primary{background:#111827;color:white}
+    .secondary{background:#e5e7eb}
+    input{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:8px;font-family:inherit}
+    .receipt{width:360px;max-width:100%;margin:auto;background:white;padding:18px;font-family:'Courier New',monospace;font-size:13px;color:#111}
+    .center{text-align:center}
+    .muted{color:#555}
+    .rrow{display:grid;grid-template-columns:1fr 76px;text-align:left;gap:6px}
+    .rrow .amt{text-align:right}
+    .line{border-top:1px dashed #222;margin:10px 0}
+    .total{font-weight:700;font-size:15px}
+    .small{font-size:12px}
+    .receipt-title{font-weight:700;font-size:15px}
+    .status{padding:12px;border-radius:10px;background:#f3f4f6;margin:12px 0;line-height:1.5}
+    .error{background:#fee2e2;color:#991b1b}
+    .ok{background:#dcfce7;color:#166534}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border-bottom:1px solid #e5e7eb;padding:8px;text-align:left;font-size:14px}
+    td:last-child,th:last-child{text-align:right}
+    @media(max-width:900px){.wrap{grid-template-columns:1fr}.receipt{width:100%}}
+    @media print{
+      body{background:white}
+      header,.control-panel,.no-print{display:none!important}
+      .wrap{display:block;padding:0}
+      .panel{box-shadow:none;padding:0}
+      .receipt{width:80mm;margin:0;padding:6mm}
+      @page{size:80mm auto;margin:0}
+    }
+  </style>
+</head>
+<body>
+<header><h1>ใบเสร็จอัตโนมัติ</h1></header>
+
+<div class="wrap">
+  <section class="panel control-panel">
+    <h2>สถานะออเดอร์</h2>
+    <div id="status" class="status">กำลังโหลดออเดอร์...</div>
+
+    <label>Order ID
+      <input id="orderIdInput" placeholder="เช่น ORD-001">
+    </label>
+
+    <div class="toolbar">
+      <button class="primary" onclick="loadOrder()">โหลดบิล</button>
+      <button class="secondary" onclick="window.print()">Save PDF / พิมพ์</button>
+    </div>
+
+    <h3>รายการสินค้า</h3>
+    <table>
+      <thead><tr><th>สินค้า</th><th>จำนวน</th><th>รวม</th></tr></thead>
+      <tbody id="itemTable"></tbody>
+    </table>
+  </section>
+
+  <section class="panel preview-panel">
+    <h2 class="no-print">ตัวอย่างบิล</h2>
+    <div id="receipt" class="receipt"></div>
+  </section>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbySEUXlVfD2e3sYiB5OSYre-w_vMv1y3KLic5z2EGclqvWHq9pswoCGkq-uC1f1l011rw/exec";
+
+function money(n){
+  return Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function todayThai(){
+  const d = new Date();
+  return d.toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+function getParam(name){
+  return new URLSearchParams(window.location.search).get(name);
+}
+
+function setStatus(text, type=''){
+  const box = document.getElementById('status');
+  box.className = 'status ' + type;
+  box.innerHTML = text;
+}
+
+function normalizeItems(raw){
+  if(!raw) return [];
+  if(Array.isArray(raw)) return raw;
+
+  // รองรับกรณี Apps Script ส่ง items เป็น string JSON
+  if(typeof raw === 'string'){
+    try{ return JSON.parse(raw); }catch(e){ return []; }
+  }
+
+  return [];
+}
+
+function normalizeOrder(data){
+  let order = data;
+
+  // รองรับ {order: {...}}
+  if(data && data.order) order = data.order;
+
+  // รองรับ {orders:[...]} แล้วเลือกอันแรก
+  if(data && Array.isArray(data.orders)) order = data.orders[0];
+
+  // รองรับ array แล้วเลือกอันแรก
+  if(Array.isArray(data)) order = data[0];
+
+  if(!order) return null;
+
+  const rawItems = normalizeItems(order.items || order.lines || order.orderItems || order.products);
+
+  const items = rawItems.map(it => ({
+    name: it.name || it.product || it.item || it.productName || '',
+    qty: Number(it.qty || it.quantity || it.amount || 0),
+    price: Number(it.price || it.unitPrice || it.unit_price || it.rate || 0)
+  })).filter(it => it.name && it.qty > 0);
+
+  return {
+    orderNo: order.orderNo || order.orderId || order.id || order.billNo || getParam('orderId') || '-',
+    customer: order.customer || order.shop || order.customerName || order.storeName || 'ลูกค้า',
+    phone: order.phone || order.tel || '',
+    date: order.date || order.deliveryDate || todayThai(),
+    discount: Number(order.discount || 0),
+    cash: Number(order.cash || 0),
+    items
+  };
+}
+
+async function tryFetch(url){
+  const res = await fetch(url);
+  const text = await res.text();
+  try{ return JSON.parse(text); }
+  catch(e){ throw new Error('ข้อมูลที่ได้ไม่ใช่ JSON: ' + text.slice(0,120)); }
+}
+
+async function loadOrder(){
+  const input = document.getElementById('orderIdInput');
+  const orderId = input.value.trim() || getParam('orderId') || getParam('id');
+
+  if(!orderId){
+    setStatus('ไม่พบ orderId ใน URL<br>ตัวอย่าง: <b>receipt_auto.html?orderId=ORD-001</b>', 'error');
+    renderReceipt(null);
+    return;
+  }
+
+  input.value = orderId;
+  setStatus('กำลังโหลดออเดอร์ <b>' + orderId + '</b> ...');
+
+  const endpoints = [
+    API_URL + '?action=getOrder&orderId=' + encodeURIComponent(orderId),
+    API_URL + '?action=getOrder&id=' + encodeURIComponent(orderId),
+    API_URL + '?orderId=' + encodeURIComponent(orderId),
+    API_URL + '?id=' + encodeURIComponent(orderId)
+  ];
+
+  let lastError = '';
+
+  for(const url of endpoints){
+    try{
+      const data = await tryFetch(url);
+      const order = normalizeOrder(data);
+      if(order && order.items && order.items.length){
+        setStatus('โหลดออเดอร์สำเร็จ: <b>' + order.orderNo + '</b>', 'ok');
+        renderReceipt(order);
+        return;
+      }
+      lastError = 'โหลดได้ แต่ไม่พบรายการสินค้าในออเดอร์';
+    }catch(err){
+      lastError = err.message;
+    }
+  }
+
+  setStatus('โหลดออเดอร์ไม่ได้<br><span class="small">' + lastError + '</span><br><br>ต้องให้ Apps Script รองรับการเรียกแบบ <b>?action=getOrder&orderId=...</b>', 'error');
+  renderReceipt(null);
+}
+
+function renderReceipt(order){
+  const box = document.getElementById('receipt');
+  const itemTable = document.getElementById('itemTable');
+
+  if(!order){
+    itemTable.innerHTML = '';
+    box.innerHTML = '<div class="center muted">ยังไม่มีข้อมูลบิล</div>';
+    return;
+  }
+
+  const sub = order.items.reduce((s,it)=>s + it.qty * it.price, 0);
+  const discount = order.discount || 0;
+  const grand = Math.max(0, sub - discount);
+  const cash = order.cash || 0;
+  const change = Math.max(0, cash - grand);
+
+  itemTable.innerHTML = order.items.map(it => `
+    <tr>
+      <td>${it.name}</td>
+      <td>${it.qty}</td>
+      <td>${money(it.qty * it.price)}</td>
+    </tr>
+  `).join('');
+
+  const lines = order.items.map(it => `
+    <div class="rrow">
+      <div>${it.name}<br><span class="small">${it.qty} X @${money(it.price)}</span></div>
+      <div class="amt">${money(it.qty*it.price)}</div>
+    </div>
+  `).join('');
+
+  box.innerHTML = `
+    <div class="center receipt-title">Delivery Order / Receipt (Cash)</div>
+    <div class="center small">
+      บริษัท เซาท์นุ๊ดเดิ้ลฟู้ดส์ จำกัด (สำนักงานใหญ่)<br>
+      15 ซอยวินอุทิศ ต.คอหงส์ อ.หาดใหญ่ จ.สงขลา 90110<br>
+      TAXID : 0905562004277<br>
+      POSID : 111000AA
+    </div>
+    <div class="line"></div>
+    <div class="rrow small">
+      <div>${order.orderNo}<br>${order.customer}${order.phone ? '<br>Tel.' + order.phone : ''}</div>
+      <div class="amt">${order.date || todayThai()}</div>
+    </div>
+    <div class="line"></div>
+    <div class="rrow small"><div>Description</div><div class="amt">Amount</div></div>
+    ${lines}
+    <div class="line"></div>
+    <div class="rrow total"><div>รวมเงิน / Total</div><div class="amt">${money(sub)}</div></div>
+    <div class="rrow"><div>ส่วนลด / Discount</div><div class="amt">${money(discount)}</div></div>
+    <div class="rrow total"><div>รวมทั้งสิ้น / Grand Total</div><div class="amt">${money(grand)}</div></div>
+    <div class="rrow"><div>Cash</div><div class="amt">${money(cash)}</div></div>
+    <div class="rrow"><div>Change</div><div class="amt">${money(change)}</div></div>
+    <br><div class="center">...THANK YOU...</div><br>
+    <div class="small">Cashier : supervisor</div>
+  `;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const orderId = getParam('orderId') || getParam('id') || '';
+  document.getElementById('orderIdInput').value = orderId;
+  if(orderId) loadOrder();
+  else renderReceipt(null);
+});
+</script>
+</body>
+</html>
