@@ -134,6 +134,11 @@ const API_URL = "https://script.google.com/macros/s/AKfycbyUhiiAI4L9_aMY9Woi65Va
 let state={products:[],customers:[],customerProducts:[],productionIn:[],salesOut:[],orders:[],stockMovements:[],stock:{},user:null};
 
 function today(){return new Date().toISOString().split('T')[0]}
+function tomorrow(){
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().split('T')[0];
+}
 function nowText(){return new Date().toLocaleString('th-TH')}
 function money(n){return Number(n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function toNonNegativeNumber(v){const n=Number(v||0);return Number.isFinite(n)&&n>0?n:0}
