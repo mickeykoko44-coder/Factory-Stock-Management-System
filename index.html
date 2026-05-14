@@ -52,6 +52,22 @@ canvas.analytics-chart{width:100%;max-width:860px;height:420px;background:white}
 .price-edit-input{max-width:120px}
 .owner-only-note{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:10px;border-radius:10px;margin:8px 0}
 
+
+button{margin:8px 8px 8px 0}
+.tabs button{margin:4px}
+#loginApp button,#publicOrderApp button,#dashboard button,#products button,#production button,#sales button,#retail button{margin-top:14px}
+#orders .table-wrap{max-height:none;overflow-x:auto;overflow-y:visible}
+#ordersTable td,#ordersTable th{white-space:normal}
+.order-action-buttons{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.order-items-preview{line-height:1.55}
+.order-toggle{background:#6b7280;padding:6px 10px;margin-top:8px}
+.bar-row{display:grid;grid-template-columns:minmax(180px,1.4fr) 3fr minmax(120px,.8fr);gap:12px;align-items:center;margin:10px 0}
+.bar-track{background:#e5e7eb;height:22px;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;background:linear-gradient(90deg,#2563eb,#06b6d4);border-radius:999px;min-width:2px}
+.bar-fill.product{background:linear-gradient(90deg,#16a34a,#84cc16)}
+.bar-name{font-weight:700;overflow:hidden;text-overflow:ellipsis}
+.bar-value{text-align:right;font-weight:800;color:#334155}
+
 </style>
 </head>
 <body>
@@ -118,11 +134,23 @@ canvas.analytics-chart{width:100%;max-width:860px;height:420px;background:white}
 
   <section id="retail" class="page"><div class="card"><h2>ขายปลีก</h2><div class="row"><div><label>วันที่</label><input id="retailDate" type="date"></div><div><label>ชื่อลูกค้า</label><input id="retailCustomerName" placeholder="ชื่อลูกค้าขายปลีก"></div><div><label>เบอร์โทร</label><input id="retailPhone" placeholder="เบอร์โทร"></div><div><label>หมายเหตุ</label><input id="retailNote" placeholder="เช่น หน้าร้าน / เงินสด"></div></div><div class="table-wrap"><table><thead><tr><th>สินค้า</th><th>ราคาปกติ</th><th>ราคาขายจริง</th><th>คงเหลือ</th><th>จำนวนขายปลีก</th></tr></thead><tbody id="retailItems"></tbody></table></div><button onclick="oneTimeClick(this, addRetailSale)">บันทึกขายปลีก</button> <button class="secondary" onclick="openReceiptManual('retail')">สร้างบิลเงินสด</button><div id="retailMessage" class="message"></div></div></section>
 
-  <section id="orders" class="page"><div class="card"><h2>Online Orders</h2><button class="secondary" onclick="oneTimeClick(this, loadAllData)">Refresh</button><div class="table-wrap"><table><thead><tr><th>Order</th><th>ร้านค้า</th><th>วันที่ส่งฟอร์ม</th><th>วันที่ต้องการให้ส่งสินค้า</th><th>ชื่อผู้สั่ง</th><th>เบอร์โทร</th><th>รายการ</th><th>ยอดรวม</th><th>Status</th><th>Order Action</th></tr></thead><tbody id="ordersTable"></tbody></table></div><div id="orderMessage" class="message"></div></div></section>
+  <section id="orders" class="page"><div class="card"><h2>Online Orders</h2><button class="secondary" onclick="oneTimeClick(this, loadAllData)">Refresh</button><div class="table-wrap"><table><thead><tr><th>Order</th><th>ร้านค้า</th><th>วันที่ส่งฟอร์ม</th><th>วันที่ต้องการให้ส่งสินค้า</th><th>ชื่อผู้สั่ง</th><th>เบอร์โทร</th><th>รายการ</th><th>Status</th><th>Order Action</th></tr></thead><tbody id="ordersTable"></tbody></table></div><div id="orderMessage" class="message"></div></div></section>
 
   <section id="analytics" class="page">
-    <div class="card"><h2>Sales Analytics</h2><div class="row"><div><label>รูปแบบรายงาน</label><select id="analyticsMode" onchange="toggleAnalyticsPeriod()"><option value="month">รายเดือน</option><option value="year">รายปี</option></select></div><div id="monthBox"><label>เดือน</label><input id="analyticsMonth" type="month"></div><div id="yearBox" class="hidden"><label>ปี</label><input id="analyticsYear" type="number" min="2000" max="2100"></div><div><button onclick="renderAnalytics()">สร้างสรุป</button></div><div><button class="secondary" onclick="window.print()">Print / Save PDF</button></div></div></div>
-    <div class="grid"><div class="card"><h3>Top 8 ร้านค้า ตามยอดขาย</h3><div class="chart-wrap"><canvas id="topShopChart" class="analytics-chart" width="860" height="420"></canvas></div></div><div class="card"><h3>Top 8 สินค้าขายดี</h3><div class="chart-wrap"><canvas id="topProductChart" class="analytics-chart" width="860" height="420"></canvas></div></div></div>
+    <div class="card">
+      <h2>Sales Analytics</h2>
+      <div class="row">
+        <div><label>รูปแบบรายงาน</label><select id="analyticsMode" onchange="toggleAnalyticsPeriod()"><option value="month">รายเดือน</option><option value="year">รายปี</option></select></div>
+        <div id="monthBox"><label>เดือน</label><input id="analyticsMonth" type="month"></div>
+        <div id="yearBox" class="hidden"><label>ปี</label><input id="analyticsYear" type="number" min="2000" max="2100"></div>
+        <div><button onclick="renderAnalytics()">สร้างสรุป</button></div>
+        <div><button class="secondary" onclick="window.print()">Print / Save PDF</button></div>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="card"><h3>ยอดขายตามร้าน</h3><div id="customerSalesBars"></div></div>
+      <div class="card"><h3>ยอดขายตามสินค้า</h3><div id="productSalesBars"></div></div>
+    </div>
   </section>
 </div>
 
@@ -132,13 +160,11 @@ canvas.analytics-chart{width:100%;max-width:860px;height:420px;background:white}
 // ใส่ Google Apps Script Web App URL ตรงนี้
 const API_URL = "https://script.google.com/macros/s/AKfycbyUhiiAI4L9_aMY9Woi65VaXaWRm9DiLRugegimSf8UGTlmm2qFnBMkkglk5aWpN25ubQ/exec";
 let state={products:[],customers:[],customerProducts:[],productionIn:[],salesOut:[],orders:[],stockMovements:[],stock:{},user:null};
+let processingOrderId=null;
+let expandedOrders={};
 
 function today(){return new Date().toISOString().split('T')[0]}
-function tomorrow(){
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().split('T')[0];
-}
+function tomorrow(){const d=new Date();d.setDate(d.getDate()+1);return d.toISOString().split('T')[0]}
 function nowText(){return new Date().toLocaleString('th-TH')}
 function money(n){return Number(n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function toNonNegativeNumber(v){const n=Number(v||0);return Number.isFinite(n)&&n>0?n:0}
@@ -235,7 +261,14 @@ async function updateProductPrice(productId){
 }
 function allowedCount(cid){return state.customerProducts.filter(cp=>cp.customer_id===cid).length}
 function renderCustomers(){const base=location.origin+location.pathname;const rows=state.customers.filter(c=>c.customer_id!=='RETAIL').map(c=>`<tr><td>${safe(c.customer_id)}</td><td>${safe(c.customer_name)}</td><td>${safe(c.group||'')}</td><td>${allowedCount(c.customer_id)}</td><td><code>${base}</code></td></tr>`).join('');if(document.getElementById('customerTable'))document.getElementById('customerTable').innerHTML=rows}
-function renderDropdowns(){['prodProduct'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=state.products.map(p=>`<option value="${safe(p.product_id)}">${safe(p.product_id)} - ${safe(p.product_name)}</option>`).join('')});const saleC=document.getElementById('saleCustomer');if(saleC)saleC.innerHTML=state.customers.filter(c=>c.customer_id!=='RETAIL').map(c=>`<option value="${safe(c.customer_id)}">${safe(c.customer_id)} - ${safe(c.customer_name)}</option>`).join('');['prodDate','saleDate','retailDate'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=el.value||today()});const y=document.getElementById('analyticsYear');if(y)y.value=y.value||new Date().getFullYear();const m=document.getElementById('analyticsMonth');if(m)m.value=m.value||today().slice(0,7);}
+function renderDropdowns(){
+  ['prodProduct'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=state.products.map(p=>`<option value="${safe(p.product_id)}">${safe(p.product_id)} - ${safe(p.product_name)}</option>`).join('')});
+  const saleC=document.getElementById('saleCustomer');
+  if(saleC)saleC.innerHTML=state.customers.filter(c=>c.customer_id!=='RETAIL').map(c=>`<option value="${safe(c.customer_id)}">${safe(c.customer_id)} - ${safe(c.customer_name)}</option>`).join('');
+  lockTodayInputs();
+  const y=document.getElementById('analyticsYear');if(y)y.value=y.value||new Date().getFullYear();
+  const m=document.getElementById('analyticsMonth');if(m)m.value=m.value||today().slice(0,7);
+}
 function renderAllowedProductCheckboxes(){const el=document.getElementById('allowedProductCheckboxes');if(!el)return;el.innerHTML=state.products.map(p=>`<label style="font-weight:400"><input type="checkbox" class="allowedProduct" value="${safe(p.product_id)}" checked style="width:auto"> ${safe(p.product_name)}</label>`).join('')}
 async function addProduct(){try{const productName=document.getElementById('newProductName').value.trim();const unit=document.getElementById('newProductUnit').value.trim()||'ชิ้น';const price=Number(document.getElementById('newProductPrice').value);if(!productName)return showMessage('productMessage','กรุณากรอกชื่อสินค้า','error');if(!Number.isFinite(price)||price<0)return showMessage('productMessage','ราคาสินค้าห้ามติดลบ','error');const r=await api('addProduct',{username:state.user.username,product_name:productName,unit,price,initial_stock:0});if(!r.success)return showMessage('productMessage',r.error,'error');showMessage('productMessage','เพิ่มสินค้าแล้ว: '+r.product_id,'ok');showCenterSuccess('ทำสำเร็จ','เพิ่มสินค้าแล้ว: '+r.product_id);document.getElementById('newProductName').value='';await loadAllData();}catch(e){showMessage('productMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}}
 async function addCustomer(){try{const allowed=[...document.querySelectorAll('.allowedProduct:checked')].map(x=>x.value);const r=await api('addCustomer',{username:state.user.username,customer_name:document.getElementById('newCustomerName').value,group:document.getElementById('newCustomerGroup').value,password:document.getElementById('newCustomerPassword').value,allowed_products:allowed});if(!r.success)return showMessage('customerMessage',r.error,'error');showMessage('customerMessage',`เพิ่มลูกค้าแล้ว: ${r.customer_id} | username: ${r.username} | password: ${r.password}`,'ok');showCenterSuccess('ทำสำเร็จ',`เพิ่มลูกค้าแล้ว: ${r.customer_id}`);await loadAllData();}catch(e){showMessage('customerMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}}
@@ -258,26 +291,68 @@ async function addRetailSale(){try{
   const r=await api('addRetailSale',{username:state.user.username,date:document.getElementById('retailDate').value,customer_name:customerName,phone,note:document.getElementById('retailNote').value,items});
   if(!r.success)return showMessage('retailMessage',r.error,'error');showMessage('retailMessage','บันทึกขายปลีกแล้ว','ok');showCenterSuccess('ทำสำเร็จ','บันทึกขายปลีกแล้ว');await loadAllData();
 }catch(e){showMessage('retailMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}}
+
+function formatOrderDateTime(v){
+  if(!v)return '';
+  try{
+    const d=new Date(v);
+    if(!isNaN(d.getTime())) return d.toLocaleString('th-TH',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  }catch(e){}
+  return String(v);
+}
 function groupOrders(){const map={};state.orders.forEach(o=>{if(!map[o.order_id])map[o.order_id]={...o,items:[],sum:0};map[o.order_id].items.push(o);map[o.order_id].sum+=Number(o.total||0)});return Object.values(map).sort((a,b)=>String(b.timestamp).localeCompare(String(a.timestamp)));}
+function renderOrderItems(o){
+  const items=o.items||[];
+  const showAll=!!expandedOrders[o.order_id];
+  const visible=showAll?items:items.slice(0,5);
+  const lines=visible.map(i=>`${safe(i.product_name)} x ${safe(i.quantity)}`).join('<br>');
+  const more=items.length>5?`<br><button class="order-toggle" onclick="expandedOrders['${safe(o.order_id)}']=!expandedOrders['${safe(o.order_id)}'];renderOrders();">${showAll?'ปิดรายการ':'ดูทั้งหมด '+items.length+' รายการ'}</button>`:'';
+  return `<div class="order-items-preview">${lines}${more}</div>`;
+}
 function renderOrders(){
   const rows=groupOrders().map(o=>{
-    const itemList=o.items.map(i=>`${safe(i.product_name)} x ${safe(i.quantity)}`).join('<br>');
+    const itemList=renderOrderItems(o);
     let actions='';
-    if(o.status==='pending'){
-      actions=`<button onclick="oneTimeClick(this,()=>approveOrder('${safe(o.order_id)}'))">Approve</button> <button class="danger" onclick="rejectOrder('${safe(o.order_id)}')">Not Approve</button>`;
+    if(processingOrderId===o.order_id){
+      actions=`<div class="order-action-buttons"><button disabled>กำลังทำรายการ...</button><button class="danger" disabled>Not Approve</button></div>`;
+    }else if(o.status==='pending'){
+      actions=`<div class="order-action-buttons"><button onclick="oneTimeClick(this,()=>approveOrder('${safe(o.order_id)}'))">Approve</button><button class="danger" onclick="rejectOrder('${safe(o.order_id)}')">Not Approve</button></div>`;
     }else if(o.status==='approved'){
-      actions=`<button class="secondary" onclick="oneTimeClick(this,()=>finishOrder('${safe(o.order_id)}'))">ส่งแล้ว / Finished Order</button><br><button onclick="previewOrderImage('${safe(o.order_id)}')">พิมพ์รูป</button><br><button class="secondary" onclick="openReceiptForOrder('${safe(o.order_id)}')">สร้างบิลเงินสด</button>`;
+      actions=`<div class="order-action-buttons"><button class="secondary" onclick="oneTimeClick(this,()=>finishOrder('${safe(o.order_id)}'))">ส่งแล้ว / Finished Order</button><button onclick="previewOrderImage('${safe(o.order_id)}')">พิมพ์รูป</button><button class="secondary" onclick="openReceiptForOrder('${safe(o.order_id)}')">สร้างบิลเงินสด</button></div>`;
     }else if(o.status==='finished'){
-      actions=`<button onclick="previewOrderImage('${safe(o.order_id)}')">พิมพ์รูป</button><br><button class="secondary" onclick="openReceiptForOrder('${safe(o.order_id)}')">สร้างบิลเงินสด</button>`;
+      actions=`<div class="order-action-buttons"><button onclick="previewOrderImage('${safe(o.order_id)}')">พิมพ์รูป</button><button class="secondary" onclick="openReceiptForOrder('${safe(o.order_id)}')">สร้างบิลเงินสด</button></div>`;
     }
-    return `<tr><td>${safe(o.order_id)}</td><td>${safe(o.customer_name)}</td><td>${safe(o.timestamp||'')}</td><td>${safe(o.delivery_date||'')}</td><td>${safe(o.ordered_by||'')}</td><td>${safe(o.phone||'')}</td><td>${itemList}</td><td>${money(o.sum)}</td><td>${safe(o.status)}</td><td>${actions}</td></tr>`;
+    return `<tr><td>${safe(o.order_id)}</td><td>${safe(o.customer_name)}</td><td>${safe(formatOrderDateTime(o.timestamp||''))}</td><td>${safe(o.delivery_date||'')}</td><td>${safe(o.ordered_by||'')}</td><td>${safe(o.phone||'')}</td><td>${itemList}</td><td>${safe(o.status)}</td><td>${actions}</td></tr>`;
   }).join('');
-  document.getElementById('ordersTable').innerHTML=rows||'<tr><td colspan="10">ไม่มี order</td></tr>';
+  document.getElementById('ordersTable').innerHTML=rows||'<tr><td colspan="9">ไม่มี order</td></tr>';
 }
-async function approveOrder(orderId){try{const orderRows=state.orders.filter(o=>o.order_id===orderId);for(const item of orderRows){const available=toNonNegativeNumber(state.stock[item.product_id]);const qty=Number(item.quantity||0);if(qty>available){const p=state.products.find(x=>x.product_id===item.product_id);showCenterError('ของมีไม่พอ',`${p?.product_name||item.product_id} คงเหลือ ${available} แต่ต้องใช้ ${qty}`);return showMessage('orderMessage',`ของมีไม่พอ: ${p?.product_name||item.product_id} คงเหลือ ${available} แต่ order ต้องใช้ ${qty}`,'error')}}const r=await api('approveOrder',{username:state.user.username,orderId});if(!r.success)return showMessage('orderMessage',r.error,'error');showMessage('orderMessage','Approve แล้ว และตัด stock ใน SalesOut','ok');showCenterSuccess('ทำสำเร็จ','Approve order แล้ว');await loadAllData();}catch(e){showMessage('orderMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}}
+async function approveOrder(orderId){
+  processingOrderId=orderId;renderOrders();
+  try{
+    const orderRows=state.orders.filter(o=>o.order_id===orderId);
+    for(const item of orderRows){
+      const available=toNonNegativeNumber(state.stock[item.product_id]);
+      const qty=Number(item.quantity||0);
+      if(qty>available){
+        const p=state.products.find(x=>x.product_id===item.product_id);
+        showCenterError('ของมีไม่พอ',`${p?.product_name||item.product_id} คงเหลือ ${available} แต่ต้องใช้ ${qty}`);
+        showMessage('orderMessage',`ของมีไม่พอ: ${p?.product_name||item.product_id} คงเหลือ ${available} แต่ order ต้องใช้ ${qty}`,'error');
+        return;
+      }
+    }
+    const r=await api('approveOrder',{username:state.user.username,orderId});
+    if(!r.success)return showMessage('orderMessage',r.error,'error');
+    showMessage('orderMessage','Approve แล้ว และตัด stock ใน SalesOut','ok');
+    showCenterSuccess('ทำสำเร็จ','Approve order แล้ว');
+    await loadAllData();
+  }catch(e){showMessage('orderMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}
+  finally{processingOrderId=null;renderOrders();}
+}
 async function rejectOrder(orderId){
+  if(processingOrderId)return;
   const ok=confirm('ยืนยัน Not Approve order นี้หรือไม่?');
   if(!ok)return;
+  processingOrderId=orderId;renderOrders();
   try{
     const r=await api('rejectOrder',{username:state.user.username,orderId});
     if(!r.success)return showMessage('orderMessage',r.error,'error');
@@ -285,8 +360,10 @@ async function rejectOrder(orderId){
     showCenterSuccess('ทำสำเร็จ','Not Approve order แล้ว');
     await loadAllData();
   }catch(e){showMessage('orderMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}
+  finally{processingOrderId=null;renderOrders();}
 }
 async function finishOrder(orderId){
+  processingOrderId=orderId;renderOrders();
   try{
     const r=await api('finishOrder',{username:state.user.username,orderId});
     if(!r.success)return showMessage('orderMessage',r.error,'error');
@@ -294,14 +371,32 @@ async function finishOrder(orderId){
     showCenterSuccess('ทำสำเร็จ','ส่งเสร็จแล้ว');
     await loadAllData();
   }catch(e){showMessage('orderMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}
+  finally{processingOrderId=null;renderOrders();}
 }
 function renderCustomerOrder(){const cid=state.user.customer_id;const customer=state.customers.find(c=>c.customer_id===cid);const products=allowedProductsForCustomer(cid);const minDate=tomorrow();document.getElementById('publicOrderApp').innerHTML=`<div class="card"><h2>ฟอร์มสั่งสินค้า</h2><p><b>${safe(customer?.customer_name||cid)}</b></p><label>วันที่ส่งรายการ / วันที่กรอก</label><input id="formSentDate" value="${nowText()}" readonly><label>วันที่ต้องการจัดส่งของ</label><input id="orderDate" type="date" min="${minDate}" value="${minDate}"><label>ชื่อผู้สั่ง</label><input id="orderedBy"><label>เบอร์โทร</label><input id="phone"><div class="table-wrap"><table><thead><tr><th>สินค้า</th><th>ราคา</th><th>จำนวน</th></tr></thead><tbody>${products.map(p=>`<tr><td>${safe(p.product_name)}</td><td>${money(toNonNegativeNumber(p.price))}</td><td><input class="orderQty" data-product="${safe(p.product_id)}" type="number" min="0"></td></tr>`).join('')}</tbody></table></div><button onclick="oneTimeClick(this, submitOrder)">ส่งคำสั่งซื้อ</button><button class="danger" onclick="logout()">Logout</button><div id="orderSubmitMessage" class="message"></div></div>`}
 async function submitOrder(){try{const items=[...document.querySelectorAll('.orderQty')].map(i=>({product_id:i.dataset.product,quantity:Number(i.value||0)})).filter(x=>x.quantity>0);if(items.length===0)return showMessage('orderSubmitMessage','กรุณาใส่จำนวนสินค้าอย่างน้อย 1 รายการ','error');const r=await api('submitOrder',{customer_id:state.user.customer_id,delivery_date:document.getElementById('orderDate').value,form_sent_date:document.getElementById('formSentDate').value,ordered_by:document.getElementById('orderedBy').value,phone:document.getElementById('phone').value,items});if(!r.success)return showMessage('orderSubmitMessage',r.error,'error');showMessage('orderSubmitMessage','ส่งคำสั่งซื้อสำเร็จ เลขที่ '+r.order_id,'ok');showCenterSuccess('ส่งออเดอร์สำเร็จ','เลขที่ '+r.order_id);document.querySelectorAll('.orderQty').forEach(i=>i.disabled=true)}catch(e){showMessage('orderSubmitMessage',e.message,'error');showCenterError('ส่งออเดอร์ไม่สำเร็จ',e.message)}}
 function toggleAnalyticsPeriod(){document.getElementById('monthBox').classList.toggle('hidden',document.getElementById('analyticsMode').value!=='month');document.getElementById('yearBox').classList.toggle('hidden',document.getElementById('analyticsMode').value!=='year')}
 function analyticsRows(){const mode=document.getElementById('analyticsMode').value;const month=document.getElementById('analyticsMonth').value;const year=document.getElementById('analyticsYear').value;return state.salesOut.filter(s=>mode==='year'?String(s.date).startsWith(String(year)):String(s.date).startsWith(month))}
-function renderAnalytics(){if(!document.getElementById('topShopChart'))return;toggleAnalyticsPeriod();const rows=analyticsRows();const byCustomer={},byProduct={};rows.forEach(s=>{const c=state.customers.find(x=>x.customer_id===s.customer_id);const p=state.products.find(x=>x.product_id===s.product_id);byCustomer[s.customer_id]=(byCustomer[s.customer_id]||{name:c?.customer_name||s.customer_id,value:0});byCustomer[s.customer_id].value+=Number(s.total||0);byProduct[s.product_id]=(byProduct[s.product_id]||{name:p?.product_name||s.product_id,value:0});byProduct[s.product_id].value+=Number(s.total||0)});drawBarChart('topShopChart',Object.values(byCustomer).sort((a,b)=>b.value-a.value).slice(0,8),'Top 8 ร้านค้า');drawBarChart('topProductChart',Object.values(byProduct).sort((a,b)=>b.value-a.value).slice(0,8),'Top 8 สินค้า')}
-function drawBarChart(canvasId,data,title){const c=document.getElementById(canvasId),ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.fillStyle='#111827';ctx.font='bold 18px Arial';ctx.fillText(title,24,28);const left=70,top=50,bottom=110,right=25,chartW=w-left-right,chartH=h-top-bottom;ctx.strokeStyle='#111827';ctx.beginPath();ctx.moveTo(left,top);ctx.lineTo(left,top+chartH);ctx.lineTo(left+chartW,top+chartH);ctx.stroke();const max=Math.max(...data.map(d=>d.value),1);ctx.fillStyle='#6b7280';ctx.font='12px Arial';for(let i=0;i<=4;i++){const y=top+chartH-(chartH*i/4);const val=max*i/4;ctx.fillText(money(val),5,y+4);ctx.strokeStyle='#e5e7eb';ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(left+chartW,y);ctx.stroke()}const barW=chartW/Math.max(data.length,1)*0.58;data.forEach((d,i)=>{const x=left+(chartW/data.length)*i+(chartW/data.length-barW)/2;const bh=chartH*(d.value/max);const y=top+chartH-bh;ctx.fillStyle='#2563eb';ctx.fillRect(x,y,barW,bh);ctx.fillStyle='#111827';ctx.font='12px Arial';ctx.save();ctx.translate(x+barW/2,top+chartH+12);ctx.rotate(Math.PI/2);ctx.fillText(d.name,0,0);ctx.restore();ctx.fillStyle='#334155';ctx.fillText(money(d.value),x-8,y-6)})}
-
+function renderBars(elId,data,cls=''){
+  const max=Math.max(...data.map(x=>x.value),1);
+  document.getElementById(elId).innerHTML=data.map(x=>`<div class="bar-row"><div class="bar-name">${safe(x.name)}</div><div class="bar-track"><div class="bar-fill ${cls}" style="width:${(x.value/max)*100}%"></div></div><div class="bar-value">${money(x.value)}</div></div>`).join('')||'<p class="hint">ไม่มีข้อมูล</p>';
+}
+function renderAnalytics(){
+  if(!document.getElementById('customerSalesBars'))return;
+  toggleAnalyticsPeriod();
+  const rows=analyticsRows();
+  const byCustomer={},byProduct={};
+  rows.forEach(s=>{
+    const c=state.customers.find(x=>x.customer_id===s.customer_id);
+    const p=state.products.find(x=>x.product_id===s.product_id);
+    byCustomer[s.customer_id]=(byCustomer[s.customer_id]||{name:c?.customer_name||s.customer_id,value:0});
+    byCustomer[s.customer_id].value+=Number(s.total||0);
+    byProduct[s.product_id]=(byProduct[s.product_id]||{name:p?.product_name||s.product_id,value:0});
+    byProduct[s.product_id].value+=Number(s.total||0);
+  });
+  renderBars('customerSalesBars',Object.values(byCustomer).sort((a,b)=>b.value-a.value));
+  renderBars('productSalesBars',Object.values(byProduct).sort((a,b)=>b.value-a.value),'product');
+}
 function getGroupedOrder(orderId){return groupOrders().find(o=>String(o.order_id)===String(orderId))}
 function buildOrderImageCanvas(orderId){
   const o=getGroupedOrder(orderId);
