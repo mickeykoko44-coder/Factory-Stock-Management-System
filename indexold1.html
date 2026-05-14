@@ -641,6 +641,21 @@ function renderLogin(){
     </div>
   `;
 }
+function oneTimeClick(btn, fn){
+  if(!btn || btn.disabled) return;
+
+  btn.disabled = true;
+
+  Promise.resolve(fn())
+    .catch(err=>{
+      console.error(err);
+    })
+    .finally(()=>{
+      setTimeout(()=>{
+        btn.disabled = false;
+      },1000);
+    });
+}
 window.onload=async()=>{renderLogin();const saved=localStorage.getItem('factory_user');if(saved){state.user=JSON.parse(saved);try{if(state.user.role==='owner'||state.user.role==='admin'){document.getElementById('loginApp').classList.add('hidden');document.getElementById('adminApp').classList.remove('hidden');setupHeader();renderTabs();await loadAllData();}else{document.getElementById('loginApp').classList.add('hidden');document.getElementById('publicOrderApp').classList.remove('hidden');setupHeader();await loadAllData();renderCustomerOrder();}}catch(e){localStorage.removeItem('factory_user');document.getElementById('loginApp').classList.remove('hidden');alert(e.message)}}}
 </script>
 </body>
