@@ -624,6 +624,23 @@ function openReceiptForOrder(orderId){
 }
 
 function downloadStockAsImage(){const products=state.products||[];const rowH=34,headerH=92,footerH=42,width=1100,height=Math.max(260,headerH+rowH*(products.length+1)+footerH);const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);ctx.fillStyle='#111827';ctx.font='bold 28px Arial';ctx.fillText('Factory Stock Real-time',30,42);ctx.font='16px Arial';ctx.fillStyle='#374151';ctx.fillText('Export: '+nowText(),30,70);const cols=[{x:30,t:'รหัส'},{x:150,t:'สินค้า'},{x:480,t:'คงเหลือ'},{x:620,t:'หน่วย'},{x:740,t:'ราคา'},{x:890,t:'มูลค่า'}];let y=headerH;ctx.fillStyle='#e5e7eb';ctx.fillRect(24,y-24,width-48,rowH);ctx.fillStyle='#111827';ctx.font='bold 16px Arial';cols.forEach(col=>ctx.fillText(col.t,col.x,y-2));y+=rowH;ctx.font='15px Arial';let total=0;products.forEach((p,idx)=>{const q=toNonNegativeNumber(state.stock[p.product_id]);const price=toNonNegativeNumber(p.price);const value=q*price;total+=value;if(idx%2===0){ctx.fillStyle='#f9fafb';ctx.fillRect(24,y-24,width-48,rowH)}ctx.fillStyle=q<=0?'#dc2626':'#111827';ctx.fillText(String(p.product_id||''),cols[0].x,y-2);ctx.fillStyle='#111827';ctx.fillText(String(p.product_name||''),cols[1].x,y-2);ctx.fillText(q.toFixed(2),cols[2].x,y-2);ctx.fillText(String(p.unit||''),cols[3].x,y-2);ctx.fillText(money(price),cols[4].x,y-2);ctx.fillText(money(value),cols[5].x,y-2);y+=rowH});ctx.strokeStyle='#d1d5db';ctx.beginPath();ctx.moveTo(24,y-20);ctx.lineTo(width-24,y-20);ctx.stroke();ctx.fillStyle='#111827';ctx.font='bold 18px Arial';ctx.fillText('มูลค่าสต๊อกรวม: '+money(total)+' บาท',30,y+14);const a=document.createElement('a');a.download='stock-realtime-'+today()+'.png';a.href=canvas.toDataURL('image/png');a.click();showCenterSuccess('ดาวน์โหลดรูปภาพแล้ว','Stock real-time PNG')}
+function renderLogin(){
+  document.getElementById('mainTitle').textContent='หน้าล็อคอิน';
+  document.getElementById('mainSubtitle').textContent='เข้าสู่ระบบเพื่อใช้งาน';
+
+  document.getElementById('loginApp').innerHTML=`
+    <div class="card" style="max-width:420px;margin:auto">
+      <h2>เข้าสู่ระบบ</h2>
+      <label>Username</label>
+      <input id="loginUser" autocomplete="username">
+      <label>Password</label>
+      <input id="loginPass" type="password" autocomplete="current-password">
+      <button onclick="oneTimeClick(this, login)">Login</button>
+      <div id="loginMessage" class="message"></div>
+      <div class="version-badge">Version ${APP_VERSION}</div>
+    </div>
+  `;
+}
 window.onload=async()=>{renderLogin();const saved=localStorage.getItem('factory_user');if(saved){state.user=JSON.parse(saved);try{if(state.user.role==='owner'||state.user.role==='admin'){document.getElementById('loginApp').classList.add('hidden');document.getElementById('adminApp').classList.remove('hidden');setupHeader();renderTabs();await loadAllData();}else{document.getElementById('loginApp').classList.add('hidden');document.getElementById('publicOrderApp').classList.remove('hidden');setupHeader();await loadAllData();renderCustomerOrder();}}catch(e){localStorage.removeItem('factory_user');document.getElementById('loginApp').classList.remove('hidden');alert(e.message)}}}
 </script>
 </body>
