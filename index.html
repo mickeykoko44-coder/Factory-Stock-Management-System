@@ -213,6 +213,13 @@ function dateOnlyText(v){
     return '';
   }
 }
+
+function renderLogin(){
+  document.getElementById('mainTitle').textContent='หน้าล็อคอิน';
+  document.getElementById('mainSubtitle').textContent='เข้าสู่ระบบเพื่อใช้งาน';
+  document.getElementById('loginApp').innerHTML=`<div class="card" style="max-width:420px;margin:auto"><h2>เข้าสู่ระบบ</h2><label>Username</label><input id="loginUser" autocomplete="username"><label>Password</label><input id="loginPass" type="password" autocomplete="current-password"><button onclick="oneTimeClick(this, login)">Login</button><div id="loginMessage" class="message"></div><div class="version-badge">Version ${APP_VERSION}</div></div>`;
+}
+
 function setupHeader(){
   if(state.user?.role==='customer'){
     document.getElementById('mainTitle').textContent=state.user?.displayName||state.user?.username||'ร้านค้า';
