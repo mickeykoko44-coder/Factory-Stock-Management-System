@@ -216,7 +216,7 @@ function setupHeader(){
     document.getElementById('mainTitle').textContent='Factory Stock Management System';
     document.getElementById('mainSubtitle').textContent=`Role: ${state.user?.role||''} | ${state.user?.displayName||state.user?.username||''}`;
   }
-} | ${state.user?.displayName||state.user?.username||''}`}
+}
 function showPage(id,btn){document.querySelectorAll('#adminApp .page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');if(btn)btn.classList.add('active');if(id==='analytics')renderAnalytics();if(id==='retail')renderRetailItems();if(id==='stockMovement')renderStockMovements();}
 function renderTabs(){
   const role=state.user.role;
