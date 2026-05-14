@@ -183,7 +183,7 @@ button{margin:8px 8px 8px 0}
 
 <script>
 // ใส่ Google Apps Script Web App URL ตรงนี้
-const APP_VERSION = "1.0.1";
+const APP_VERSION = "1.0.2";
 const API_URL = "https://script.google.com/macros/s/AKfycbyUhiiAI4L9_aMY9Woi65VaXaWRm9DiLRugegimSf8UGTlmm2qFnBMkkglk5aWpN25ubQ/exec";
 let state={products:[],customers:[],customerProducts:[],productionIn:[],salesOut:[],orders:[],stockMovements:[],stock:{},user:null};
 let processingOrderId=null;
@@ -193,20 +193,25 @@ function today(){return new Date().toISOString().split('T')[0]}
 function tomorrow(){const d=new Date();d.setDate(d.getDate()+1);return d.toISOString().split('T')[0]}
 function yesterday(){const d=new Date();d.setDate(d.getDate()-1);return d.toISOString().split('T')[0]}
 function nowText(){return new Date().toLocaleString('th-TH')}
-function dateOnlyText(v){try{const d=v?new Date(v+'T00:00:00'):new Date();return d.toLocaleDateString('th-TH',{year:'numeric',month:'2-digit',day:'2-digit'});}catch(e){return String(v||'')}}
-function money(n){return Number(n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}
-function toNonNegativeNumber(v){const n=Number(v||0);return Number.isFinite(n)&&n>0?n:0}
-function safe(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function showMessage(id,text,type){const el=document.getElementById(id);if(!el)return;el.textContent=text;el.className='message '+type}
-function showCenterSuccess(text='ทำสำเร็จ',sub=''){const old=document.querySelector('.center-toast');if(old)old.remove();const box=document.createElement('div');box.className='center-toast';box.innerHTML=`<div>${safe(text)}</div>${sub?`<div class="small">${safe(sub)}</div>`:''}`;document.body.appendChild(box);setTimeout(()=>box.remove(),1600)}
-function showCenterError(text='เกิดข้อผิดพลาด',sub=''){const old=document.querySelector('.center-toast');if(old)old.remove();const box=document.createElement('div');box.className='center-toast error';box.innerHTML=`<div>${safe(text)}</div>${sub?`<div class="small">${safe(sub)}</div>`:''}`;document.body.appendChild(box);setTimeout(()=>box.remove(),2400)}
-async function oneTimeClick(btn,fn){if(btn.dataset.locked==='true')return;btn.dataset.locked='true';btn.disabled=true;const old=btn.textContent;btn.textContent='กำลังทำรายการ...';try{await fn();}catch(e){showCenterError('ทำรายการไม่สำเร็จ',e.message||'');btn.disabled=false;btn.dataset.locked='false';btn.textContent=old;return;}setTimeout(()=>{if(document.body.contains(btn)){btn.disabled=false;btn.dataset.locked='false';btn.textContent=old}},1600)}
-async function api(action,payload={}){if(API_URL.includes('PASTE_YOUR'))throw new Error('ยังไม่ได้ใส่ API_URL ใน index.html');const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,...payload})});return await res.json();}
-
-function renderLogin(){
-  document.getElementById('mainTitle').textContent='หน้าล็อคอิน';
-  document.getElementById('mainSubtitle').textContent='เข้าสู่ระบบเพื่อใช้งาน';
-  document.getElementById('loginApp').innerHTML=`<div class="card" style="max-width:420px;margin:auto"><h2>เข้าสู่ระบบ</h2><label>Username</label><input id="loginUser" autocomplete="username"><label>Password</label><input id="loginPass" type="password" autocomplete="current-password"><button onclick="oneTimeClick(this, login)">Login</button><div id="loginMessage" class="message"></div><div class="version-badge">Version ${APP_VERSION}</div></div>`;
+function dateOnlyText(v){
+  try{
+    let d;
+    if(!v){
+      d=new Date();
+    }else if(typeof v==='string' && /^\d{4}-\d{2}-\d{2}$/.test(v)){
+      d=new Date(v+'T00:00:00');
+    }else{
+      d=new Date(v);
+    }
+    if(isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('th-TH',{
+      day:'2-digit',
+      month:'2-digit',
+      year:'numeric'
+    });
+  }catch(e){
+    return '';
+  }
 }
 function setupHeader(){
   if(state.user?.role==='customer'){
@@ -402,7 +407,7 @@ async function addRetailSale(){try{
   if(!r.success)return showMessage('retailMessage',r.error,'error');showMessage('retailMessage','บันทึกขายปลีกแล้ว','ok');showCenterSuccess('ทำสำเร็จ','บันทึกขายปลีกแล้ว');await loadAllData();
 }catch(e){showMessage('retailMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}}
 
-function formatDeliveryDate(v){return dateOnlyText(v)}
+function formatDeliveryDate(v){ return dateOnlyText(v); }
 function formatOrderDateTime(v){
   if(!v)return '';
   try{
@@ -433,7 +438,7 @@ function renderOrders(){
     }else if(o.status==='finished'){
       actions=`<div class="order-action-buttons"><button onclick="previewOrderImage('${safe(o.order_id)}')">พิมพ์รูป</button><button class="secondary" onclick="openReceiptForOrder('${safe(o.order_id)}')">สร้างบิลเงินสด</button></div>`;
     }
-    return `<tr><td>${safe(o.order_id)}</td><td>${safe(o.customer_name)}</td><td>${safe(formatOrderDateTime(o.timestamp||''))}</td><td>${safe(formatDeliveryDate(o.delivery_date||''))}</td><td>${safe(o.ordered_by||'')}</td><td>${safe(o.phone||'')}</td><td>${itemList}</td><td>${safe(o.status)}</td><td>${actions}</td></tr>`;
+    return `<tr><td>${safe(o.order_id)}</td><td>${safe(o.customer_name)}</td><td>${safe(formatOrderDateTime(o.timestamp||''))}</td><td>${safe(o.delivery_date ? formatDeliveryDate(o.delivery_date) : '-')}</td><td>${safe(o.ordered_by||'')}</td><td>${safe(o.phone||'')}</td><td>${itemList}</td><td>${safe(o.status)}</td><td>${actions}</td></tr>`;
   }).join('');
   document.getElementById('ordersTable').innerHTML=rows||'<tr><td colspan="9">ไม่มี order</td></tr>';
 }
