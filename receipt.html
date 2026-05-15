@@ -1,4 +1,5 @@
-//นี่คือเวอร์ชั่น 1.0.2 ถ้าจะอัพเดท เขียนด้วยว่าเปลี่ยนอะไรตรงนี้ พร้อมเปลี่ยนเลขเวอร์ชั่น
+// เวอร์ชั่น 1.0.2
+// เปลี่ยน: ย้ายปุ่มเพิ่มสินค้า/ล้างจำนวนไว้เหนือรายการสินค้า, เพิ่มปุ่มบันทึกเป็นรูป PNG, ปรับสีปุ่มให้ชัดเจนขึ้น
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -28,6 +29,95 @@ input,textarea,select{width:100%;border:1px solid #d1d5db;border-radius:8px;padd
 .message.ok{display:block;background:#dcfce7;color:#166534}.message.error{display:block}
 @media(max-width:900px){.wrap{grid-template-columns:1fr}.receipt{width:100%}.item-grid{grid-template-columns:1.4fr .7fr .7fr .7fr;font-size:13px}}
 @media print{body{background:white}header,.input-panel,.toolbar,.no-print,.message{display:none!important}.wrap{display:block;padding:0}.panel{box-shadow:none;padding:0}.receipt{width:80mm;margin:0;padding:6mm}.preview-panel{padding:0}@page{size:80mm auto;margin:0}}
+
+.bottom-actions{
+  margin-top:22px;
+  border-top:1px solid #e5e7eb;
+  padding-top:14px;
+}
+.button-row{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+.button-row button{min-width:160px}
+button:disabled{opacity:.55;cursor:not-allowed}
+.loading-note{
+  display:none;
+  margin-top:10px;
+  color:#2563eb;
+  font-weight:700;
+}
+.loading-note.active{display:block}
+@media print{
+  html,body{
+    width:80mm!important;
+    margin:0!important;
+    padding:0!important;
+    background:white!important;
+  }
+  body *{visibility:hidden!important}
+  #receipt,#receipt *{visibility:visible!important}
+  #receipt{
+    position:absolute!important;
+    left:0!important;
+    top:0!important;
+    width:80mm!important;
+    max-width:80mm!important;
+    margin:0!important;
+    padding:6mm!important;
+    box-shadow:none!important;
+    background:white!important;
+  }
+  header,.input-panel,.toolbar,.bottom-actions,.no-print,.message,.preview-panel h2{display:none!important}
+  .wrap,.panel,.preview-panel{
+    display:block!important;
+    width:80mm!important;
+    max-width:80mm!important;
+    margin:0!important;
+    padding:0!important;
+    box-shadow:none!important;
+    border:0!important;
+    background:white!important;
+  }
+  @page{
+    size:80mm auto;
+    margin:0;
+  }
+}
+
+
+.item-actions{
+  margin:18px 0 12px 0;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.btn-add,
+.btn-pdf,
+.btn-copy,
+.btn-image{
+  background:#f3f4f6;
+  color:#111827;
+  border:1px solid #d1d5db;
+}
+.btn-add:hover,
+.btn-pdf:hover,
+.btn-copy:hover,
+.btn-image:hover{
+  background:#e5e7eb;
+}
+.btn-clear{
+  background:#ef4444;
+  color:white;
+  border:1px solid #dc2626;
+}
+button.btn-clear:hover{
+  background:#dc2626;
+}
+
 </style>
 </head>
 <body>
@@ -47,18 +137,21 @@ input,textarea,select{width:100%;border:1px solid #d1d5db;border-radius:8px;padd
 <label>รับเงินสด<input id="cash" type="number" min="0" value="0"></label>
 </div>
 
-<div class="toolbar">
-<button class="primary" onclick="renderReceipt()">คำนวณ/ออกบิล</button>
-<button class="secondary" onclick="saveData()">บันทึกข้อมูลในเครื่อง</button>
-<button class="secondary" onclick="window.print()">Save เป็น PDF / พิมพ์</button>
-<button class="danger" onclick="clearQty()">ล้างจำนวน</button>
+
+<div class="item-actions no-print">
+  <button class="btn-add" onclick="runButtonAction(this, addCustomItem)">+ เพิ่มสินค้า</button>
+  <button class="btn-clear" onclick="runButtonAction(this, clearQty)">ล้างจำนวน</button>
 </div>
 
 <div class="item-grid head"><div>สินค้า</div><div>ราคา/หน่วย</div><div>จำนวน</div><div>รวม</div></div>
 <div id="items" class="items"></div>
-<div class="toolbar">
-<button class="secondary" onclick="addCustomItem()">+ เพิ่มสินค้าเอง</button>
-<button class="success" onclick="copyReceiptText()">Copy รายละเอียดบิล</button>
+<div class="bottom-actions no-print">
+  <div class="button-row">
+    <button class="btn-pdf" onclick="runButtonAction(this, printReceipt)">Save PDF / พิมพ์</button>
+    <button class="btn-image" onclick="runButtonAction(this, saveReceiptImage)">บันทึกเป็นรูป PNG</button>
+    <button class="btn-copy" onclick="runButtonAction(this, copyReceiptText)">Copy รายละเอียดบิล</button>
+  </div>
+  <div id="loadingNote" class="loading-note">กำลังทำรายการ...</div>
 </div>
 </section>
 
@@ -80,6 +173,41 @@ function money(n){return Number(n||0).toLocaleString('en-US',{minimumFractionDig
 function todayThai(){const d=new Date();return d.toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'numeric'})}
 function showMsg(text,type='error'){const el=document.getElementById('msg');el.textContent=text;el.className='message '+type}
 async function api(action,payload={}){if(API_URL.includes('PASTE_YOUR'))throw new Error('ยังไม่ได้ใส่ API_URL ใน receipt.html');const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,...payload})});return await res.json()}
+
+function setAllButtonsDisabled(disabled, activeBtn=null){
+  document.querySelectorAll('button').forEach(btn=>{
+    btn.disabled=disabled;
+  });
+  if(activeBtn && disabled){
+    activeBtn.dataset.oldText=activeBtn.textContent;
+    activeBtn.textContent='กำลังโหลด...';
+  }
+  if(activeBtn && !disabled && activeBtn.dataset.oldText){
+    activeBtn.textContent=activeBtn.dataset.oldText;
+    delete activeBtn.dataset.oldText;
+  }
+  const note=document.getElementById('loadingNote');
+  if(note) note.classList.toggle('active', disabled);
+}
+
+async function runButtonAction(btn, action){
+  if(btn.disabled) return;
+  setAllButtonsDisabled(true, btn);
+  try{
+    await Promise.resolve(action());
+  }catch(e){
+    console.error(e);
+    showMsg(e.message || 'ทำรายการไม่สำเร็จ');
+  }finally{
+    setTimeout(()=>setAllButtonsDisabled(false, btn), 900);
+  }
+}
+
+function printReceipt(){
+  renderReceipt();
+  window.print();
+}
+
 
 async function loadInitialData(){
   document.getElementById('billNo').value = 'CSH' + Date.now().toString().slice(-10);
@@ -168,6 +296,73 @@ function renderReceipt(){
 function saveData(){localStorage.setItem('receiptItems',JSON.stringify(items));showMsg('บันทึกข้อมูลในเครื่องแล้ว','ok')}
 function clearQty(){items.forEach(it=>it.qty=0);renderReceipt()}
 function addCustomItem(){items.push({name:'สินค้าใหม่',price:0,qty:0});renderReceipt()}
+
+function saveReceiptImage(){
+  renderReceipt();
+
+  const receipt=document.getElementById('receipt');
+  const rect=receipt.getBoundingClientRect();
+  const width=Math.ceil(rect.width*2);
+  const height=Math.ceil(receipt.scrollHeight*2);
+
+  const clone=receipt.cloneNode(true);
+  clone.style.width=rect.width+'px';
+  clone.style.maxWidth=rect.width+'px';
+  clone.style.margin='0';
+  clone.style.padding='18px';
+  clone.style.boxSizing='border-box';
+  clone.style.background='white';
+  clone.style.fontFamily="'Courier New', monospace";
+  clone.style.fontSize='13px';
+  clone.style.color='#111';
+
+  const wrapper=document.createElement('div');
+  wrapper.style.position='fixed';
+  wrapper.style.left='-9999px';
+  wrapper.style.top='0';
+  wrapper.style.background='white';
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
+
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+    <foreignObject width="100%" height="100%">
+      <div xmlns="http://www.w3.org/1999/xhtml" style="transform:scale(2);transform-origin:top left;width:${rect.width}px;background:white;">
+        ${clone.outerHTML}
+      </div>
+    </foreignObject>
+  </svg>`;
+
+  const blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const img=new Image();
+
+  img.onload=function(){
+    const canvas=document.createElement('canvas');
+    canvas.width=width;
+    canvas.height=height;
+    const ctx=canvas.getContext('2d');
+    ctx.fillStyle='white';
+    ctx.fillRect(0,0,width,height);
+    ctx.drawImage(img,0,0);
+    URL.revokeObjectURL(url);
+    document.body.removeChild(wrapper);
+
+    const a=document.createElement('a');
+    a.download=(document.getElementById('billNo').value || 'receipt')+'.png';
+    a.href=canvas.toDataURL('image/png');
+    a.click();
+    showMsg('บันทึกรูป PNG แล้ว','ok');
+  };
+
+  img.onerror=function(){
+    URL.revokeObjectURL(url);
+    document.body.removeChild(wrapper);
+    showMsg('บันทึกรูปไม่สำเร็จ ลองใช้ Save PDF แทน');
+  };
+
+  img.src=url;
+}
+
 async function copyReceiptText(){
   const text=document.getElementById('receipt').innerText;
   try{await navigator.clipboard.writeText(text);showMsg('Copy รายละเอียดบิลแล้ว','ok')}catch(e){showMsg('Copy ไม่สำเร็จ')}
