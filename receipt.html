@@ -1,5 +1,5 @@
 // เวอร์ชั่น 1.0.2
-// เปลี่ยน: ย้ายปุ่มเพิ่มสินค้า/ล้างจำนวนไว้เหนือรายการสินค้า, เพิ่มปุ่มบันทึกเป็นรูป PNG, ปรับสีปุ่มให้ชัดเจนขึ้น
+// เปลี่ยน: เอาปุ่มบันทึกเป็น PDF ออก เหลือ 2 ปุ่มด้านล่าง คือ พิมพ์บิล และ Copy รายละเอียดบิล
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -97,16 +97,14 @@ button:disabled{opacity:.55;cursor:not-allowed}
 }
 .btn-add,
 .btn-pdf,
-.btn-copy,
-.btn-image{
+.btn-copy{
   background:#f3f4f6;
   color:#111827;
   border:1px solid #d1d5db;
 }
 .btn-add:hover,
 .btn-pdf:hover,
-.btn-copy:hover,
-.btn-image:hover{
+.btn-copy:hover:hover{
   background:#e5e7eb;
 }
 .btn-clear{
@@ -147,8 +145,7 @@ button.btn-clear:hover{
 <div id="items" class="items"></div>
 <div class="bottom-actions no-print">
   <div class="button-row">
-    <button class="btn-pdf" onclick="runButtonAction(this, printReceipt)">Save PDF / พิมพ์</button>
-    <button class="btn-image" onclick="runButtonAction(this, saveReceiptImage)">บันทึกเป็นรูป PNG</button>
+    <button class="btn-pdf" onclick="runButtonAction(this, printReceipt)">พิมพ์บิล</button>
     <button class="btn-copy" onclick="runButtonAction(this, copyReceiptText)">Copy รายละเอียดบิล</button>
   </div>
   <div id="loadingNote" class="loading-note">กำลังทำรายการ...</div>
@@ -207,6 +204,7 @@ function printReceipt(){
   renderReceipt();
   window.print();
 }
+
 
 
 async function loadInitialData(){
