@@ -1,4 +1,5 @@
-//นี่คือเวอร์ชั่น 1.0.2 ถ้าจะอัพเดท เขียนด้วยว่าเปลี่ยนอะไรตรงนี้ พร้อมเปลี่ยนเลขเวอร์ชั่น
+//นี่คือเวอร์ชั่น 1.0.3
+//เปลี่ยน: เพิ่มระบบบันทึกเวลา Login ลง Google Sheets ในชีท LoginLogs พร้อม account, role, display name, note, user agent และ page URL
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -184,7 +185,7 @@ button{margin:8px 8px 8px 0}
 
 <script>
 // ใส่ Google Apps Script Web App URL ตรงนี้
-const APP_VERSION = "1.0.2";
+const APP_VERSION = "1.0.3";
 const API_URL = "https://script.google.com/macros/s/AKfycbysLtvdqFltTfsCvy2qNzUnEZDvbBdACGkM3OmWz1GgU4Rq07Lmb_tb7-eBGACMvHISxQ/exec";
 let state={products:[],customers:[],customerProducts:[],productionIn:[],salesOut:[],orders:[],stockMovements:[],stock:{},user:null};
 let processingOrderId=null;
@@ -250,7 +251,22 @@ function renderTabs(){
   document.querySelectorAll('#adminApp .page').forEach(p=>p.classList.remove('active'));
   document.getElementById(tabs[0]?.[0]||'products').classList.add('active');
 }
-async function login(){try{const username=document.getElementById('loginUser').value.trim();const password=document.getElementById('loginPass').value;const r=await api('login',{username,password});if(!r.success)return showMessage('loginMessage',r.error,'error');state.user=r.user;localStorage.setItem('factory_user',JSON.stringify(r.user));if(r.user.role==='owner'||r.user.role==='admin'){document.getElementById('loginApp').classList.add('hidden');document.getElementById('adminApp').classList.remove('hidden');setupHeader();renderTabs();await loadAllData();}else{document.getElementById('loginApp').classList.add('hidden');document.getElementById('publicOrderApp').classList.remove('hidden');setupHeader();await loadAllData();renderCustomerOrder();}}catch(e){showMessage('loginMessage',e.message,'error')}}
+async function logLoginSuccess(user,note='Login สำเร็จ'){
+  try{
+    await api('logLogin',{
+      username:user?.username||'',
+      role:user?.role||'',
+      displayName:user?.displayName||'',
+      customer_id:user?.customer_id||'',
+      note,
+      pageUrl:location.href,
+      userAgent:navigator.userAgent
+    });
+  }catch(e){
+    console.warn('Login log failed:', e);
+  }
+}
+async function login(){try{const username=document.getElementById('loginUser').value.trim();const password=document.getElementById('loginPass').value;const r=await api('login',{username,password});if(!r.success)return showMessage('loginMessage',r.error,'error');state.user=r.user;localStorage.setItem('factory_user',JSON.stringify(r.user));await logLoginSuccess(r.user);if(r.user.role==='owner'||r.user.role==='admin'){document.getElementById('loginApp').classList.add('hidden');document.getElementById('adminApp').classList.remove('hidden');setupHeader();renderTabs();await loadAllData();}else{document.getElementById('loginApp').classList.add('hidden');document.getElementById('publicOrderApp').classList.remove('hidden');setupHeader();await loadAllData();renderCustomerOrder();}}catch(e){showMessage('loginMessage',e.message,'error')}}
 function logout(){localStorage.removeItem('factory_user');location.reload()}
 async function loadAllData(){const r=await api('getAllData',{username:state.user?.username});if(!r.success)throw new Error(r.error);Object.assign(state,r);renderAll();}
 function renderAll(){renderDashboard();renderStockMovements();renderProducts();renderCustomers();renderDropdowns();renderOrders();renderAllowedProductCheckboxes();renderSaleItems();renderRetailItems();}
