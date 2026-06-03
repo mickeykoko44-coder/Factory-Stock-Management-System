@@ -184,7 +184,7 @@ button{margin:8px 8px 8px 0}
 <script>
 // ใส่ Google Apps Script Web App URL ตรงนี้
 const APP_VERSION = "1.0.2";
-const API_URL = "https://script.google.com/macros/s/AKfycbxHKeF-3lF9_m-nzXKPWVcMJq9cyFPFobEWZGENWGov83KufUzrwVXiNZk2ASToXfTQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbysLtvdqFltTfsCvy2qNzUnEZDvbBdACGkM3OmWz1GgU4Rq07Lmb_tb7-eBGACMvHISxQ/exec";
 let state={products:[],customers:[],customerProducts:[],productionIn:[],salesOut:[],orders:[],stockMovements:[],stock:{},user:null};
 let processingOrderId=null;
 let expandedOrders={};
@@ -223,7 +223,25 @@ function showMessage(id,text,type){const el=document.getElementById(id);if(!el)r
 function showCenterSuccess(text='ทำสำเร็จ',sub=''){const old=document.querySelector('.center-toast');if(old)old.remove();const box=document.createElement('div');box.className='center-toast';box.innerHTML=`<div>${safe(text)}</div>${sub?`<div class="small">${safe(sub)}</div>`:''}`;document.body.appendChild(box);setTimeout(()=>box.remove(),1600)}
 function showCenterError(text='เกิดข้อผิดพลาด',sub=''){const old=document.querySelector('.center-toast');if(old)old.remove();const box=document.createElement('div');box.className='center-toast error';box.innerHTML=`<div>${safe(text)}</div>${sub?`<div class="small">${safe(sub)}</div>`:''}`;document.body.appendChild(box);setTimeout(()=>box.remove(),2400)}
 async function oneTimeClick(btn,fn){if(btn.dataset.locked==='true')return;btn.dataset.locked='true';btn.disabled=true;const old=btn.textContent;btn.textContent='กำลังทำรายการ...';try{await fn();}catch(e){showCenterError('ทำรายการไม่สำเร็จ',e.message||'');btn.disabled=false;btn.dataset.locked='false';btn.textContent=old;return;}setTimeout(()=>{if(document.body.contains(btn)){btn.disabled=false;btn.dataset.locked='false';btn.textContent=old}},1600)}
-async function api(action,payload={}){if(API_URL.includes('PASTE_YOUR'))throw new Error('ยังไม่ได้ใส่ API_URL ใน index.html');const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,...payload})});return await res.json();}
+async function api(action,payload={}){
+  if(API_URL.includes('PASTE_YOUR')) throw new Error('ยังไม่ได้ใส่ API_URL ใน index.html');
+  try{
+    const res=await fetch(API_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action,...payload})
+    });
+    const text=await res.text();
+    if(!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0,220)}`);
+    try{
+      return JSON.parse(text);
+    }catch(parseError){
+      throw new Error('API ไม่ได้ตอบกลับเป็น JSON: '+text.slice(0,220));
+    }
+  }catch(e){
+    throw new Error(`เชื่อมต่อ API ไม่ได้ (${action}): ${e.message || e}`);
+  }
+}
 
 function renderLogin(){
   document.getElementById('mainTitle').textContent='หน้าล็อคอิน';
