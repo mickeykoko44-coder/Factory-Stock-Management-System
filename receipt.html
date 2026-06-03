@@ -144,6 +144,8 @@ button.btn-clear:hover{
 <div class="bottom-actions no-print">
   <div class="button-row">
     <button class="btn-pdf" onclick="runButtonAction(this, printReceipt)">พิมพ์บิล</button>
+    <button class="btn-pdf" onclick="runButtonAction(this, saveReceiptPdf)">บันทึก PDF</button>
+    <button class="btn-copy" onclick="runButtonAction(this, saveReceiptImage)">บันทึก PNG</button>
     <button class="btn-copy" onclick="runButtonAction(this, copyReceiptText)">Copy รายละเอียดบิล</button>
   </div>
   <div id="loadingNote" class="loading-note">กำลังทำรายการ...</div>
@@ -158,7 +160,7 @@ button.btn-clear:hover{
 
 <script>
 // ใส่ Google Apps Script Web App URL ตัวเดียวกับ index.html
-const API_URL = "https://script.google.com/macros/s/AKfycbxXr2_-iEgIbUfJjguCJyEjmcaoQ5GaHexEhrhBD-R5MKmxls8_NefTOTUN1u3CbaUIPg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzvAt_Q0BrDGMPwd6GPUSL-r7-nQfOdmBvIm513mQGbDC8ZTGkmo5gcSHXM18Pp9xKiXA/exec";
 
 let items = [];
 let productOptions = [];
@@ -311,7 +313,7 @@ function saveData(){localStorage.setItem('receiptItems',JSON.stringify(items));s
 function clearQty(){items.forEach(it=>it.qty=0);renderReceipt()}
 function addCustomItem(){items.push({name:'สินค้าใหม่',price:0,qty:0});renderReceipt()}
 
-function saveReceiptImage(){
+function buildReceiptCanvas(){
   renderReceipt();
 
   const receipt=document.getElementById('receipt');
@@ -350,31 +352,84 @@ function saveReceiptImage(){
   const url=URL.createObjectURL(blob);
   const img=new Image();
 
-  img.onload=function(){
-    const canvas=document.createElement('canvas');
-    canvas.width=width;
-    canvas.height=height;
-    const ctx=canvas.getContext('2d');
-    ctx.fillStyle='white';
-    ctx.fillRect(0,0,width,height);
-    ctx.drawImage(img,0,0);
-    URL.revokeObjectURL(url);
-    document.body.removeChild(wrapper);
+  return new Promise((resolve,reject)=>{
+    img.onload=function(){
+      const canvas=document.createElement('canvas');
+      canvas.width=width;
+      canvas.height=height;
+      const ctx=canvas.getContext('2d');
+      ctx.fillStyle='white';
+      ctx.fillRect(0,0,width,height);
+      ctx.drawImage(img,0,0);
+      URL.revokeObjectURL(url);
+      document.body.removeChild(wrapper);
+      resolve(canvas);
+    };
 
-    const a=document.createElement('a');
-    a.download=(document.getElementById('billNo').value || 'receipt')+'.png';
-    a.href=canvas.toDataURL('image/png');
-    a.click();
-    showMsg('บันทึกรูป PNG แล้ว','ok');
-  };
+    img.onerror=function(){
+      URL.revokeObjectURL(url);
+      document.body.removeChild(wrapper);
+      reject(new Error('สร้างรูปใบเสร็จไม่สำเร็จ'));
+    };
 
-  img.onerror=function(){
-    URL.revokeObjectURL(url);
-    document.body.removeChild(wrapper);
-    showMsg('บันทึกรูปไม่สำเร็จ ลองใช้ Save PDF แทน');
-  };
+    img.src=url;
+  });
+}
 
-  img.src=url;
+async function saveReceiptImage(){
+  const canvas=await buildReceiptCanvas();
+  const a=document.createElement('a');
+  a.download=(document.getElementById('billNo').value || 'receipt')+'.png';
+  a.href=canvas.toDataURL('image/png');
+  a.click();
+  showMsg('บันทึกรูป PNG แล้ว','ok');
+}
+
+function bytesToBinaryString(bytes){
+  let out='';
+  for(let i=0;i<bytes.length;i++)out+=String.fromCharCode(bytes[i]);
+  return out;
+}
+
+function pdfEscape(text){
+  return String(text).replace(/[\\()]/g,'\\$&');
+}
+
+async function saveReceiptPdf(){
+  const canvas=await buildReceiptCanvas();
+  const jpgDataUrl=canvas.toDataURL('image/jpeg',0.95);
+  const jpgBytes=Uint8Array.from(atob(jpgDataUrl.split(',')[1]),c=>c.charCodeAt(0));
+  const pageWidth=226.77;
+  const pageHeight=Math.max(320,pageWidth*(canvas.height/canvas.width));
+  const imageName='Im1';
+  const objects=[
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth.toFixed(2)} ${pageHeight.toFixed(2)}] /Resources << /XObject << /${imageName} 4 0 R >> >> /Contents 5 0 R >>`,
+    `<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpgBytes.length} >>\nstream\n${bytesToBinaryString(jpgBytes)}\nendstream`,
+    `<< /Length ${(`q\n${pageWidth.toFixed(2)} 0 0 ${pageHeight.toFixed(2)} 0 0 cm\n/${imageName} Do\nQ`).length} >>\nstream\nq\n${pageWidth.toFixed(2)} 0 0 ${pageHeight.toFixed(2)} 0 0 cm\n/${imageName} Do\nQ\nendstream`,
+    `<< /Title (${pdfEscape(document.getElementById('billNo').value || 'receipt')}) /Creator (Factory Receipt 1.0.4) >>`
+  ];
+  let pdf='%PDF-1.4\n';
+  const offsets=[0];
+  objects.forEach((obj,i)=>{
+    offsets.push(pdf.length);
+    pdf+=`${i+1} 0 obj\n${obj}\nendobj\n`;
+  });
+  const xref=pdf.length;
+  pdf+=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;
+  for(let i=1;i<offsets.length;i++)pdf+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';
+  pdf+=`trailer\n<< /Size ${objects.length+1} /Root 1 0 R /Info 6 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  const bytes=new Uint8Array(pdf.length);
+  for(let i=0;i<pdf.length;i++)bytes[i]=pdf.charCodeAt(i)&255;
+  const blob=new Blob([bytes],{type:'application/pdf'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.download=(document.getElementById('billNo').value || 'receipt')+'.pdf';
+  a.href=url;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  showMsg('บันทึก PDF แล้ว','ok');
 }
 
 async function copyReceiptText(){
