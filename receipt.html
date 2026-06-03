@@ -158,7 +158,7 @@ button.btn-clear:hover{
 
 <script>
 // ใส่ Google Apps Script Web App URL ตัวเดียวกับ index.html
-const API_URL = "https://script.google.com/macros/s/AKfycbxHKeF-3lF9_m-nzXKPWVcMJq9cyFPFobEWZGENWGov83KufUzrwVXiNZk2ASToXfTQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyUhiiAI4L9_aMY9Woi65VaXaWRm9DiLRugegimSf8UGTlmm2qFnBMkkglk5aWpN25ubQ/exec";
 
 let items = [];
 let productOptions = [];
@@ -167,7 +167,25 @@ function params(){return new URLSearchParams(location.search)}
 function money(n){return Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function todayThai(){const d=new Date();return d.toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'numeric'})}
 function showMsg(text,type='error'){const el=document.getElementById('msg');el.textContent=text;el.className='message '+type}
-async function api(action,payload={}){if(API_URL.includes('PASTE_YOUR'))throw new Error('ยังไม่ได้ใส่ API_URL ใน receipt.html');const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,...payload})});return await res.json()}
+async function api(action,payload={}){
+  if(API_URL.includes('PASTE_YOUR')) throw new Error('ยังไม่ได้ใส่ API_URL ใน receipt.html');
+  try{
+    const res=await fetch(API_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action,...payload})
+    });
+    const text=await res.text();
+    if(!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0,220)}`);
+    try{
+      return JSON.parse(text);
+    }catch(parseError){
+      throw new Error('API ไม่ได้ตอบกลับเป็น JSON: '+text.slice(0,220));
+    }
+  }catch(e){
+    throw new Error(`เชื่อมต่อ API ไม่ได้ (${action}): ${e.message || e}`);
+  }
+}
 
 function setAllButtonsDisabled(disabled, activeBtn=null){
   document.querySelectorAll('button').forEach(btn=>{
