@@ -3,6 +3,16 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Secure company system. Login required." />
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+<meta name="googlebot" content="noindex,nofollow,noarchive,nosnippet" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Factory Stock Management System" />
+<meta property="og:description" content="Secure company system. Login required." />
+<meta property="og:site_name" content="Factory Stock Management System" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Factory Stock Management System" />
+<meta name="twitter:description" content="Secure company system. Login required." />
 <title>Factory Stock Management System</title>
 <style>
 *{box-sizing:border-box;font-family:Arial,sans-serif}
@@ -195,8 +205,8 @@ button{margin:8px 8px 8px 0}
 
 <script>
 // ใส่ Google Apps Script Web App URL ตรงนี้
-const APP_VERSION = "1.0.4";
-const API_URL = "https://script.google.com/macros/s/AKfycbzvAt_Q0BrDGMPwd6GPUSL-r7-nQfOdmBvIm513mQGbDC8ZTGkmo5gcSHXM18Pp9xKiXA/exec";
+const APP_VERSION = "1.0.5";
+const API_URL = "https://script.google.com/macros/s/AKfycbxFXIk1zhCQbyshK2aR6g-8HAlpo55r_0Crac4d7oVNLL6KYfzWmhD_HIP0IsTPJ3-sQw/exec";
 let state={products:[],customers:[],customerProducts:[],productionIn:[],salesOut:[],orders:[],stockMovements:[],loginLogs:[],loginLogAccounts:[],stock:{},user:null};
 let processingOrderId=null;
 let expandedOrders={};
