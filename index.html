@@ -117,7 +117,7 @@ button{margin:8px 8px 8px 0}
 
 <script>
 // ใส่ Google Apps Script Web App URL ตรงนี้
-const APP_VERSION = "1.0.6";
+const APP_VERSION = "1.0.7";
 const API_URL = "https://script.google.com/macros/s/AKfycbxFXIk1zhCQbyshK2aR6g-8HAlpo55r_0Crac4d7oVNLL6KYfzWmhD_HIP0IsTPJ3-sQw/exec";
 let state={products:[],customers:[],customerProducts:[],productionIn:[],salesOut:[],orders:[],stockMovements:[],loginLogs:[],loginLogAccounts:[],stock:{},user:null};
 let processingOrderId=null;
@@ -190,6 +190,7 @@ function renderLogin(){
   document.getElementById('mainSubtitle').textContent='เข้าสู่ระบบเพื่อใช้งาน';
   document.getElementById('loginApp').innerHTML=`<div class="card" style="max-width:420px;margin:auto"><h2>เข้าสู่ระบบ</h2><label>Username</label><input id="loginUser" autocomplete="username"><label>Password</label><input id="loginPass" type="password" autocomplete="current-password"><button onclick="oneTimeClick(this, login)">Login</button><div id="loginMessage" class="message"></div><div class="version-badge">Version ${APP_VERSION}</div></div>`;
 }
+function normalizeLoginUsername(value){const v=String(value||'').trim();return /^c\d+$/i.test(v)?v.toUpperCase():v}
 function setupHeader(){
   if(state.user?.role==='customer'){
     document.getElementById('mainTitle').textContent=state.user?.displayName||state.user?.username||'ร้านค้า';
@@ -209,9 +210,19 @@ function renderTabs(){
   document.querySelectorAll('#adminApp .page').forEach(p=>p.classList.remove('active'));
   document.getElementById(tabs[0]?.[0]||'products').classList.add('active');
 }
-async function login(){try{const username=document.getElementById('loginUser').value.trim();const password=document.getElementById('loginPass').value;const r=await api('login',{username,password,pageUrl:location.href,userAgent:navigator.userAgent});if(!r.success)return showMessage('loginMessage',r.error,'error');state.user=r.user;localStorage.setItem('factory_user',JSON.stringify(r.user));if(r.user.role==='owner'||r.user.role==='admin'){ensureAdminMarkup();document.getElementById('loginApp').classList.add('hidden');document.getElementById('adminApp').classList.remove('hidden');setupHeader();renderTabs();await loadAllData();}else{document.getElementById('loginApp').classList.add('hidden');document.getElementById('publicOrderApp').classList.remove('hidden');setupHeader();await loadAllData();renderCustomerOrder();}}catch(e){showMessage('loginMessage',e.message,'error')}}
+async function login(){try{const username=normalizeLoginUsername(document.getElementById('loginUser').value);const password=document.getElementById('loginPass').value;const r=await api('login',{username,password,pageUrl:location.href,userAgent:navigator.userAgent});if(!r.success)return showMessage('loginMessage',r.error,'error');state.user=r.user;localStorage.setItem('factory_user',JSON.stringify(r.user));if(r.user.role==='owner'||r.user.role==='admin'){ensureAdminMarkup();document.getElementById('loginApp').classList.add('hidden');document.getElementById('adminApp').classList.remove('hidden');setupHeader();renderTabs();await loadAllData();}else{document.getElementById('loginApp').classList.add('hidden');document.getElementById('publicOrderApp').classList.remove('hidden');setupHeader();await loadAllData();renderCustomerOrder();}}catch(e){showMessage('loginMessage',e.message,'error')}}
 function logout(){localStorage.removeItem('factory_user');location.reload()}
-async function loadAllData(){const r=await api('getAllData',{username:state.user?.username});if(!r.success)throw new Error(r.error);Object.assign(state,r);if(state.user?.role==='owner')await loadLoginLogs(false);renderAll();}
+async function loadAllData(){
+  const r=await api('getAllData',{username:state.user?.username});
+  if(!r.success)throw new Error(r.error);
+  Object.assign(state,r);
+  if(state.user?.role==='owner'){
+    await loadLoginLogs(false);
+    renderAll();
+  }else if(state.user?.role==='admin'){
+    renderAll();
+  }
+}
 function renderAll(){renderDashboard();renderStockMovements();renderProducts();renderCustomers();renderDropdowns();renderOrders();renderAllowedProductCheckboxes();renderSaleItems();renderRetailItems();renderLoginLogs();}
 function renderDashboard(){if(!document.getElementById('stockTable'))return;document.getElementById('totalProducts').textContent=state.products.length;document.getElementById('totalCustomers').textContent=state.customers.filter(c=>c.customer_id!=='RETAIL').length;document.getElementById('pendingOrders').textContent=[...new Set(state.orders.filter(o=>o.status==='pending').map(o=>o.order_id))].length;let total=0;const rows=state.products.map(p=>{const q=toNonNegativeNumber(state.stock[p.product_id]);const price=toNonNegativeNumber(p.price);const v=q*price;total+=v;return `<tr><td>${safe(p.product_id)}</td><td>${safe(p.product_name)}</td><td class="${q<=0?'low-stock':''}">${q.toFixed(2)}</td><td>${safe(p.unit)}</td><td>${money(price)}</td><td>${money(v)}</td></tr>`}).join('');document.getElementById('totalValue').textContent=money(total)+' บาท';document.getElementById('stockTable').innerHTML=rows||'<tr><td colspan="6">ไม่มีข้อมูล</td></tr>';}
 
