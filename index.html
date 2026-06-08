@@ -117,7 +117,7 @@ button{margin:8px 8px 8px 0}
 
 <script>
 // ใส่ Google Apps Script Web App URL ตรงนี้
-const APP_VERSION = "1.0.9";
+const APP_VERSION = "1.0.10";
 const API_URL = "https://script.google.com/macros/s/AKfycbzQIEiZTq0EviNt-_-ptGS4swVyipL3J4YW5niCG3arv-X364xKH-2V8OVCkzojSYDt/exec";
 let state={products:[],customers:[],customerProducts:[],customerPrices:[],productionIn:[],salesOut:[],orders:[],stockMovements:[],loginLogs:[],loginLogAccounts:[],stock:{},user:null};
 let processingOrderId=null;
@@ -533,8 +533,7 @@ function selectedCustomerOrderItems(){
   return [...document.querySelectorAll('.orderQty')].map(i=>{
     const product=state.products.find(p=>p.product_id===i.dataset.product);
     const qty=Number(i.value||0);
-    const price=customerPriceForProduct(state.user.customer_id,i.dataset.product);
-    return {product_id:i.dataset.product,product_name:product?.product_name||i.dataset.product,quantity:qty,price,total:qty*price};
+    return {product_id:i.dataset.product,product_name:product?.product_name||i.dataset.product,quantity:qty};
   }).filter(x=>x.quantity>0);
 }
 function clearCustomerOrderPreview(){
@@ -548,6 +547,7 @@ function buildCustomerOrderPreviewCanvas(){
   const customerName=customer?.customer_name||state.user.customer_id;
   const orderDate=document.getElementById('formSentDate')?.value||dateOnlyText();
   const deliveryDate=document.getElementById('orderDate')?.value||dateOnlyText(document.getElementById('orderDatePicker')?.value);
+  const generatedAt=nowText();
   const orderedBy=document.getElementById('orderedBy')?.value||'';
   const phone=document.getElementById('phone')?.value||'';
   const rowH=34,width=860,headerH=205,footerH=72,height=Math.max(420,headerH+rowH*(items.length+1)+footerH);
@@ -564,29 +564,22 @@ function buildCustomerOrderPreviewCanvas(){
   ctx.fillText('ต้องการให้ส่ง: '+deliveryDate,left,162);
   ctx.fillText('สั่งโดย: '+orderedBy,470,135);
   ctx.fillText('เบอร์โทร: '+phone,470,162);
+  ctx.fillText('สร้างเมื่อ: '+generatedAt,left,188);
   let y=205;
   ctx.strokeStyle='#111';ctx.beginPath();ctx.moveTo(left,y-18);ctx.lineTo(right,y-18);ctx.stroke();
   ctx.font='bold 16px Arial';
   ctx.fillText('สินค้า',left,y);
-  ctx.fillText('จำนวน',430,y);
-  ctx.fillText('ราคา',540,y);
-  ctx.fillText('รวม',680,y);
+  ctx.fillText('จำนวน',650,y);
   ctx.beginPath();ctx.moveTo(left,y+10);ctx.lineTo(right,y+10);ctx.stroke();
   y+=rowH;ctx.font='15px Arial';
-  let total=0;
   items.forEach(item=>{
-    total+=item.total;
     ctx.fillText(String(item.product_name||''),left,y);
-    ctx.fillText(String(item.quantity),430,y);
-    ctx.fillText(money(item.price),540,y);
-    ctx.fillText(money(item.total),680,y);
+    ctx.fillText(String(item.quantity),650,y);
     y+=rowH;
   });
   ctx.beginPath();ctx.moveTo(left,y-18);ctx.lineTo(right,y-18);ctx.stroke();
-  ctx.font='bold 18px Arial';
-  ctx.fillText('รวมทั้งสิ้น',540,y+10);
-  ctx.fillText(money(total)+' บาท',680,y+10);
-  ctx.textAlign='center';ctx.font='14px Arial';ctx.fillText('ตรวจสอบรายการให้เรียบร้อยก่อนกดส่งคำสั่งซื้อ',width/2,height-28);
+  ctx.textAlign='center';ctx.font='14px Arial';ctx.fillText('รายการนี้เป็นสรุปจำนวนสินค้าเท่านั้น ราคาจะยืนยันโดยฝั่ง admin/ใบเสร็จ',width/2,height-44);
+  ctx.fillText('ตรวจสอบรายการให้เรียบร้อยก่อนกดส่งคำสั่งซื้อ',width/2,height-24);
   return canvas;
 }
 function previewCustomerOrderImage(){
@@ -621,7 +614,7 @@ function renderCustomerOrder(){
   <label>วันที่ต้องการให้ส่งสินค้า</label><input id="orderDatePicker" type="date" min="${minDate}" value="${minDate}" onchange="updateDeliveryDateText()"><input id="orderDate" value="${dateOnlyText(minDate)}" readonly>
   <label>ชื่อผู้สั่ง</label><input id="orderedBy">
   <label>เบอร์โทร</label><input id="phone" class="customer-order-phone-gap">
-  <div class="table-wrap customer-order-products"><table><thead><tr><th>สินค้า</th><th>ราคา</th><th>จำนวน</th></tr></thead><tbody>${products.map(p=>`<tr><td>${safe(p.product_name)}</td><td>${money(customerPriceForProduct(cid,p.product_id))}</td><td><input class="orderQty" data-product="${safe(p.product_id)}" type="number" min="0" oninput="clearCustomerOrderPreview()"></td></tr>`).join('')}</tbody></table></div>
+  <div class="table-wrap customer-order-products"><table><thead><tr><th>สินค้า</th><th>จำนวน</th></tr></thead><tbody>${products.map(p=>`<tr><td>${safe(p.product_name)}</td><td><input class="orderQty" data-product="${safe(p.product_id)}" type="number" min="0" oninput="clearCustomerOrderPreview()"></td></tr>`).join('')}</tbody></table></div>
   <div id="customerOrderPreviewBox" class="chart-wrap" style="margin-top:14px"></div>
   <button class="secondary" onclick="previewCustomerOrderImage()">สร้างรูปสรุปรายการก่อนส่ง</button>
   <button onclick="oneTimeClick(this, submitOrder)">ส่งคำสั่งซื้อ</button><button class="danger" onclick="logout()">Logout</button><div id="orderSubmitMessage" class="message"></div></div>`;
