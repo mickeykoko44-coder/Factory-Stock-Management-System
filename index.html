@@ -128,7 +128,7 @@ button{margin:8px 8px 8px 0}
 
 <script>
 // ใส่ Google Apps Script Web App URL ตรงนี้
-const APP_VERSION = "1.0.13";
+const APP_VERSION = "1.0.14";
 const API_URL = "https://script.google.com/macros/s/AKfycbzQIEiZTq0EviNt-_-ptGS4swVyipL3J4YW5niCG3arv-X364xKH-2V8OVCkzojSYDt/exec";
 let state={products:[],customers:[],customerProducts:[],customerPrices:[],adminUsers:[],productionIn:[],salesOut:[],orders:[],stockMovements:[],loginLogs:[],loginLogAccounts:[],stock:{},user:null};
 let processingOrderId=null;
@@ -234,6 +234,18 @@ async function loadAllData(){
   }else if(state.user?.role==='admin'){
     renderAll();
   }
+}
+function applyOperationalData(r){
+  if(!r||!r.success)return false;
+  if(Array.isArray(r.orders))state.orders=r.orders;
+  if(Array.isArray(r.stockMovements))state.stockMovements=r.stockMovements;
+  if(r.stock)state.stock=r.stock;
+  renderDashboard();
+  renderStockMovements();
+  renderOrders();
+  renderSaleItems();
+  renderRetailItems();
+  return true;
 }
 function renderAll(){renderDashboard();renderStockMovements();renderProducts();renderCustomers();renderDropdowns();renderOrders();renderAllowedProductCheckboxes();renderSaleItems();renderRetailItems();renderLoginLogs();}
 function renderDashboard(){if(!document.getElementById('stockTable'))return;document.getElementById('totalProducts').textContent=state.products.length;document.getElementById('totalCustomers').textContent=state.customers.filter(c=>c.customer_id!=='RETAIL').length;document.getElementById('pendingOrders').textContent=[...new Set(state.orders.filter(o=>o.status==='pending').map(o=>o.order_id))].length;let total=0;const rows=state.products.map(p=>{const q=toNonNegativeNumber(state.stock[p.product_id]);const price=toNonNegativeNumber(p.price);const v=q*price;total+=v;return `<tr><td>${safe(p.product_id)}</td><td>${safe(p.product_name)}</td><td class="${q<=0?'low-stock':''}">${q.toFixed(2)}</td><td>${safe(p.unit)}</td><td>${money(price)}</td><td>${money(v)}</td></tr>`}).join('');document.getElementById('totalValue').textContent=money(total)+' บาท';document.getElementById('stockTable').innerHTML=rows||'<tr><td colspan="6">ไม่มีข้อมูล</td></tr>';}
@@ -648,7 +660,7 @@ async function approveOrder(orderId){
     if(!r.success)return showMessage('orderMessage',r.error,'error');
     showMessage('orderMessage','Approve แล้ว และตัด stock ใน SalesOut','ok');
     showCenterSuccess('ทำสำเร็จ','Approve order แล้ว');
-    await loadAllData();
+    if(!applyOperationalData(r))await loadAllData();
   }catch(e){showMessage('orderMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}
   finally{processingOrderId=null;renderOrders();}
 }async function rejectOrder(orderId){
@@ -661,7 +673,7 @@ async function approveOrder(orderId){
     if(!r.success)return showMessage('orderMessage',r.error,'error');
     showMessage('orderMessage','Not Approve order แล้ว','ok');
     showCenterSuccess('ทำสำเร็จ','Not Approve order แล้ว');
-    await loadAllData();
+    if(!applyOperationalData(r))await loadAllData();
   }catch(e){showMessage('orderMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}
   finally{processingOrderId=null;renderOrders();}
 }
@@ -672,7 +684,7 @@ async function finishOrder(orderId){
     if(!r.success)return showMessage('orderMessage',r.error,'error');
     showMessage('orderMessage','Finished Order แล้ว','ok');
     showCenterSuccess('ทำสำเร็จ','ส่งเสร็จแล้ว');
-    await loadAllData();
+    if(!applyOperationalData(r))await loadAllData();
   }catch(e){showMessage('orderMessage',e.message,'error');showCenterError('ทำรายการไม่สำเร็จ',e.message)}
   finally{processingOrderId=null;renderOrders();}
 }
