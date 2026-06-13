@@ -528,7 +528,7 @@ async function saveReceiptPdf(){
     `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth.toFixed(2)} ${pageHeight.toFixed(2)}] /Resources << /XObject << /${imageName} 4 0 R >> >> /Contents 5 0 R >>`,
     `<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpgBytes.length} >>\nstream\n${bytesToBinaryString(jpgBytes)}\nendstream`,
     `<< /Length ${(`q\n${pageWidth.toFixed(2)} 0 0 ${pageHeight.toFixed(2)} 0 0 cm\n/${imageName} Do\nQ`).length} >>\nstream\nq\n${pageWidth.toFixed(2)} 0 0 ${pageHeight.toFixed(2)} 0 0 cm\n/${imageName} Do\nQ\nendstream`,
-    `<< /Title (${pdfEscape(document.getElementById('billNo').value || 'receipt')}) /Creator (Factory Receipt 1.0.12) >>`
+    `<< /Title (${pdfEscape(document.getElementById('billNo').value || 'receipt')}) /Creator (Factory Receipt 1.0.13) >>`
   ];
   let pdf='%PDF-1.4\n';
   const offsets=[0];
